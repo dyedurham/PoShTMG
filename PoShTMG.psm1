@@ -72,8 +72,8 @@ function New-TMGAccessRule {
 	$newrule = $PolicyRules.AddAccessRule("$Name")
 	$newrule.Action = $Action
 	$newrule.AccessProperties.ProtocolSelectionMethod = $ProtocolSelectionMethod
-	$newrule.AccessProperties.SpecifiedProtocols.Add("$ProtocolName")
-	$newrule.SourceSelectionIPs.ComputerSets.Add("$AppliedComputerSet")
+	$newrule.AccessProperties.SpecifiedProtocols.Add("$ProtocolName",0)
+	$newrule.SourceSelectionIPs.ComputerSets.Add("$AppliedComputerSet",0)
 
 	Write-Host "`nWhen you're finished, run Set-TMGRules to save your changes"
 }
@@ -138,7 +138,7 @@ function New-TMGProtocolDefinition {
 		[parameter(Mandatory=$true)] [string]$Name
 	)
 
-	if (-not($ComputerSet)) {
+	if (-not($Protocol)) {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
 		$global:Protocol = $tmgarray.RuleElements.ProtocolDefinitions
@@ -149,7 +149,7 @@ function New-TMGProtocolDefinition {
 	Write-Host "`nWhen you're finished, run Set-TMGProtocols to save your changes"
 }
 
-function Add-TMGProtocolParameter {
+function Add-TMGProtocolPort {
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
 		[parameter(Mandatory=$true)] [int]$LowPort,
@@ -161,7 +161,7 @@ function Add-TMGProtocolParameter {
 
 	if (($TCP -eq $false) -and ($UDP -eq $false)) {throw "You must specify an IP protocol"}
 
-	if (-not($ComputerSet)) {
+	if (-not($Protocol)) {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
 		$global:Protocol = $tmgarray.RuleElements.ProtocolDefinitions
