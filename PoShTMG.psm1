@@ -17,7 +17,8 @@ function New-TMGWebPublishingRule {
 		[bool]$SameAsInternalPath,
 		[bool]$Action = 0,
 		[bool]$TranslateLinks = 0,
-		[int]$ServerAuthentication = 4
+		[int]$ServerAuthentication = 4,
+		[switch]$ForwardOriginalHostHeader
 	)
 
 	if (-not($PolicyRules)) {
@@ -35,6 +36,7 @@ function New-TMGWebPublishingRule {
 	$newrule.Action = $Action
 	$newrule.WebPublishingProperties.WebSite = $ServerHostName
 	$newrule.WebPublishingProperties.PublishedServer = $ServerIP
+	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
 	if ($SourceNetwork) {$newrule.SourceSelectionIPs.Networks.RemoveAll(); $newrule.SourceSelectionIPs.Networks.Add("$SourceNetwork",0)}
 	$newrule.WebPublishingProperties.SetWebListener($WebListener)
 	$newrule.WebPublishingProperties.PublicNames.Add($PublicNames)
@@ -109,6 +111,26 @@ function Add-TMGComputerToSet {
 	$newcmp.Computers.Add($ClientName,$ComputerIP)
 
 	Write-Host "`nWhen you're finished, run Set-TMGComputerSet to save your changes"
+}
+
+function New-TMGStaticRoute {
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Destination,
+		[parameter(Mandatory=$true)] [string]$Mask,
+		[parameter(Mandatory=$true)] [string]$Gateway,
+		[int]$Metric = 256
+	)
+
+	if (-not($ComputerSet)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:StRoute = $tmgarray.StaticRoutes
+	}
+
+	$newstrt = $StRoute.Add($Destination,$Mask,"",$Gateway)
+	$newstrt.Metric = $Metric
+
+	Write-Host "`nWhen you're finished, run Set-TMGStaticRoute to save your changes"
 }
 
 function New-TMGProtocolDefinition {
@@ -229,6 +251,14 @@ function Set-TMGRules {
 function Set-TMGProtocols {
 	if (-not($Protocol)) {throw "Nothing to save"}
 	try { $Protocol.Save() }
+	catch { throw $_.Exception.Message }
+	write-host "Saving..."
+	WaitForSync
+}
+
+function Set-TMGStaticRoute {
+	if (-not($StRoute)) {throw "Nothing to save"}
+	try { $StRoute.Save() }
 	catch { throw $_.Exception.Message }
 	write-host "Saving..."
 	WaitForSync
