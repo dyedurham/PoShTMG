@@ -1,8 +1,65 @@
 ################################################################
 ###                                                          ###
-###  PoShTMG Module - Nial Francis, GlobalX 2014             ###
+### PoShTMG Module - Nial Francis & Matt Parkes GlobalX 2014 ###
 ###                                                          ###
 ################################################################
+
+#PolicyRuleTypes
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum PolicyRuleTypes {
+		Access  = 0,
+		ServerPublishing  = 1,
+		WebPublishing  = 2,
+		PolicyPlaceHolder  = 100
+	}
+"@
+
+#PolicyRuleActions
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum PolicyRuleActions {
+		Allow  = 0,
+		Deny  = 1
+	}
+"@
+
+
+
+
+function Get-TMGWebPublishingRules {
+<#
+	.SYNOPSIS
+	Gets the TMG Web Publishing Rules whose names match the specified Filter.
+	.DESCRIPTION
+	Uses COM to get the TMG Web Publishing Rules from the Array that this TMG server is a member of, which match the specified Filter.
+	.EXAMPLE
+	Get-TMGWebPublishingRules -Filter "Test *"
+	.PARAMETER Filter
+	The string you want to filter on. Leave blank or don't specify for no filtering.
+#>
+[CmdletBinding()]
+param
+(
+    [Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
+)
+	$result = @()
+
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$rules = $tmgarray.ArrayPolicy.PolicyRules
+	
+	#Set $Filter to * if not set
+	if (-Not $Filter) {
+		$Filter = "*"
+	}
+	
+	ForEach ($rule in $rules) {
+		if ($rule.Name -Like $name -And $rule.Type -eq [PolicyRuleTypes]::WebPublishing) {
+			$result += $rule
+		}
+	}
+	
+	return $result
+}
 
 function New-TMGWebPublishingRule {
 	Param( 
@@ -49,6 +106,42 @@ function New-TMGWebPublishingRule {
 	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
 }
 
+function Get-TMGAccessRules {
+<#
+	.SYNOPSIS
+	Gets the TMG Access Rules whose names match the specified Filter.
+	.DESCRIPTION
+	Uses COM to get the TMG Access Rules from the Array that this TMG server is a member of, which match the specified Filter.
+	.EXAMPLE
+	Get-TMGAccessRules -Filter "Test *"
+	.PARAMETER Filter
+	The string you want to filter on. Leave blank or don't specify for no filtering.
+#>
+[CmdletBinding()]
+param
+(
+    [Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
+)
+	$result = @()
+
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$rules = $tmgarray.ArrayPolicy.PolicyRules
+	
+	#Set $Filter to * if not set
+	if (-Not $Filter) {
+		$Filter = "*"
+	}
+	
+	ForEach ($rule in $rules) {
+		if ($rule.Name -Like $name -And $rule.Type -eq [PolicyRuleTypes]::Access) {
+			$result += $rule
+		}
+	}
+	
+	return $result
+}
+
 function New-TMGAccessRule {
 	Param(
 		[parameter(Mandatory=$true)] [string]$Name,
@@ -76,6 +169,42 @@ function New-TMGAccessRule {
 	$newrule.SourceSelectionIPs.ComputerSets.Add("$AppliedComputerSet",0)
 
 	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
+}
+
+function Get-TMGComputerSets {
+<#
+	.SYNOPSIS
+	Gets the TMG Computer Sets whose names match the specified Filter.
+	.DESCRIPTION
+	Uses COM to get the TMG Computer Sets from the Array that this TMG server is a member of, which match the specified Filter.
+	.EXAMPLE
+	Get-TMGComputerSets -Filter "Test *"
+	.PARAMETER Filter
+	The string you want to filter on. Leave blank or don't specify for no filtering.
+#>
+[CmdletBinding()]
+param
+(
+    [Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
+)
+	$result = @()
+
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$computersets = $tmgarray.RuleElements.ComputerSets
+	
+	#Set $Filter to * if not set
+	if (-Not $Filter) {
+		$Filter = "*"
+	}
+	
+	ForEach ($computerset in $computersets) {
+		if ($computerset.Name -Like $name) {
+			$result += $computerset
+		}
+	}
+	
+	return $result
 }
 
 function New-TMGComputerSet {
@@ -133,6 +262,42 @@ function New-TMGStaticRoute {
 	Write-Host "`nWhen you're finished, run Save-TMGStaticRoute to save your changes`n"
 }
 
+function Get-TMGProtocolDefinitions {
+<#
+	.SYNOPSIS
+	Gets the TMG Protocol Definitions whose names match the specified Filter.
+	.DESCRIPTION
+	Uses COM to get the TMG Protocol Definitions from the Array that this TMG server is a member of, which match the specified Filter.
+	.EXAMPLE
+	Get-TMGProtocolDefinitions -Filter "Test *"
+	.PARAMETER Filter
+	The string you want to filter on. Leave blank or don't specify for no filtering.
+#>
+[CmdletBinding()]
+param
+(
+    [Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
+)
+	$result = @()
+
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$protocols = $tmgarray.RuleElements.ProtocolDefinitions
+	
+	#Set $Filter to * if not set
+	if (-Not $Filter) {
+		$Filter = "*"
+	}
+	
+	ForEach ($protocol in $protocols) {
+		if ($protocol.Name -Like $name) {
+			$result += $protocol
+		}
+	}
+	
+	return $result
+}
+
 function New-TMGProtocolDefinition {
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name
@@ -174,6 +339,41 @@ function Add-TMGProtocolPort {
 	Write-Host "`nWhen you're finished, run Save-TMGProtocols to save your changes`n"
 }
 
+function Get-TMGWebListeners {
+<#
+	.SYNOPSIS
+	Gets the TMG Web Listeners whose names match the specified Filter.
+	.DESCRIPTION
+	Uses COM to get the TMG Web Listeners from the Array that this TMG server is a member of, which match the specified Filter.
+	.EXAMPLE
+	Get-TMGWebListeners -Filter "Test *"
+	.PARAMETER Filter
+	The string you want to filter on. Leave blank or don't specify for no filtering.
+#>
+[CmdletBinding()]
+param
+(
+    [Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
+)
+	$result = @()
+
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$weblisteners = $tmgarray.RuleElements.WebListeners
+	
+	#Set $Filter to * if not set
+	if (-Not $Filter) {
+		$Filter = "*"
+	}
+	
+	ForEach ($weblistener in $weblisteners) {
+		if ($weblistener.Name -Like $name) {
+			$result += $weblistener
+		}
+	}
+	
+	return $result
+}
 
 function New-TMGWebListener {
 	Param( 
@@ -268,6 +468,90 @@ function Add-TMGAdapterRangeToNetwork {
 	}
 
 	Write-Host "`nWhen you're finished, run Save-TMGNetworkConfiguration to save your changes`n"
+}
+
+function Set-TMGFloodMitigation {
+<#
+	.SYNOPSIS
+	
+	.DESCRIPTION
+	
+	.EXAMPLE
+	
+	.PARAMETER Filter
+	
+#>
+[CmdletBinding(DefaultParametersetName="DefaultLimit")]
+param
+( 
+	# Int.MinValue is horrible but it's the only way because PowerShell won't tell
+	# you if a Parameter has been _set_ or not (other than switches via IsPresent).
+    [Parameter(Mandatory=$false)] [int]$Enabled = $([int]::MinValue),
+    [Parameter(Mandatory=$false)] [int]$LogQuotaRejectedTraffic = $([int]::MinValue),
+
+    [Parameter(Mandatory=$false)] [int]$DefaultUDPLimit = $([int]::MinValue),
+    [Parameter(Mandatory=$false)] [int]$DefaultTCPLimit = $([int]::MinValue),
+    [Parameter(Mandatory=$false)] [int]$DefaultOtherLimit = $([int]::MinValue),
+    [Parameter(Mandatory=$false)] [int]$DefaultTCPLimitPerMinute = $([int]::MinValue),
+    [Parameter(Mandatory=$false)] [int]$DefaultHTTPLimitPerMinute = $([int]::MinValue),
+    
+	[Parameter(Mandatory=$false)] [int]$SpecialUDPLimit = $([int]::MinValue),
+    [Parameter(Mandatory=$false)] [int]$SpecialTCPLimit = $([int]::MinValue),
+    [Parameter(Mandatory=$false)] [int]$SpecialOtherLimit = $([int]::MinValue),
+    [Parameter(Mandatory=$false)] [int]$SpecialTCPLimitPerMinute = $([int]::MinValue),
+    [Parameter(Mandatory=$false)] [int]$SpecialHTTPLimitPerMinute = $([int]::MinValue)
+)
+
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$ConnectionLimitPolicy = $tmgarray.ArrayPolicy.ConnectionLimitPolicy
+	$DefaultLimit = $ConnectionLimitPolicy.DefaultLimit
+	$SpecialLimit = $ConnectionLimitPolicy.SpecialLimit
+
+	if ($Enabled -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.UDPLimit
+	}
+	if ($LogQuotaRejectedTraffic -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimit
+	}
+
+	if ($DefaultUDPLimit -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.UDPLimit
+	}
+	if ($DefaultTCPLimit -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimit
+	}
+	if ($DefaultOtherLimit -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.OtherLimit
+	}
+	if ($DefaultTCPLimitPerMinute -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimitPerMinute
+	}
+	if ($DefaultHTTPLimitPerMinute -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.HTTPLimitPerMinute
+	}
+	
+	if ($SpecialUDPLimit -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.UDPLimit
+	}
+	if ($SpecialTCPLimit -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.TCPLimit
+	}
+	if ($SpecialOtherLimit -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.OtherLimit
+	}
+	if ($SpecialTCPLimitPerMinute -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.TCPLimitPerMinute
+	}
+	if ($SpecialHTTPLimitPerMinute -ge 0) {
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.HTTPLimitPerMinute
+	}
+}
+
+function  Save-TMGFloodMitigationConfiguration {
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$tmgarray.ArrayPolicy.ConnectionLimitPolicy.Save()
 }
 
 function Save-TMGWebListener {
