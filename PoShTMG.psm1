@@ -46,7 +46,7 @@ function New-TMGWebPublishingRule {
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
 	if ($InternalPathMapping) {$newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping)}
 
-	Write-Host "`nWhen you're finished, run Set-TMGRules to save your changes"
+	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
 }
 
 function New-TMGAccessRule {
@@ -75,7 +75,7 @@ function New-TMGAccessRule {
 	$newrule.AccessProperties.SpecifiedProtocols.Add("$ProtocolName",0)
 	$newrule.SourceSelectionIPs.ComputerSets.Add("$AppliedComputerSet",0)
 
-	Write-Host "`nWhen you're finished, run Set-TMGRules to save your changes"
+	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
 }
 
 function New-TMGComputerSet {
@@ -91,7 +91,7 @@ function New-TMGComputerSet {
 
 	$newcs = $ComputerSet.Add($Name)
 
-	Write-Host "`nWhen you're finished, run Set-TMGComputerSet to save your changes"
+	Write-Host "`nWhen you're finished, run Save-TMGComputerSet to save your changes`n"
 }
 
 function Add-TMGComputerToSet {
@@ -110,7 +110,7 @@ function Add-TMGComputerToSet {
 	$newcmp = $ComputerSet.item($SetName)
 	$newcmp.Computers.Add($ClientName,$ComputerIP)
 
-	Write-Host "`nWhen you're finished, run Set-TMGComputerSet to save your changes"
+	Write-Host "`nWhen you're finished, run Save-TMGComputerSet to save your changes`n"
 }
 
 function New-TMGStaticRoute {
@@ -130,7 +130,7 @@ function New-TMGStaticRoute {
 	$newstrt = $StRoute.Add($Destination,$Mask,"",$Gateway)
 	$newstrt.Metric = $Metric
 
-	Write-Host "`nWhen you're finished, run Set-TMGStaticRoute to save your changes"
+	Write-Host "`nWhen you're finished, run Save-TMGStaticRoute to save your changes`n"
 }
 
 function New-TMGProtocolDefinition {
@@ -146,7 +146,7 @@ function New-TMGProtocolDefinition {
 
 	$newprot = $Protocol.Add($Name)
 
-	Write-Host "`nWhen you're finished, run Set-TMGProtocols to save your changes"
+	Write-Host "`nWhen you're finished, run Save-TMGProtocols to save your changes`n"
 }
 
 function Add-TMGProtocolPort {
@@ -171,7 +171,7 @@ function Add-TMGProtocolPort {
 	if ($TCP) { $newprot.PrimaryConnections.AddTCP($Direction,$LowPort,$HighPort) }
 	if ($UDP) { $newprot.PrimaryConnections.AddUDP($Direction,$LowPort,$HighPort) }
 
-	Write-Host "`nWhen you're finished, run Set-TMGProtocols to save your changes"
+	Write-Host "`nWhen you're finished, run Save-TMGProtocols to save your changes`n"
 }
 
 
@@ -221,10 +221,56 @@ function New-TMGWebListener {
 		$newrule.Properties.AppliedSSLCertificates.Add($certhash,"")
 	}
 
-	Write-Host "`nWhen you're finished, run Set-TMGWebListener to save your changes"
+	Write-Host "`nWhen you're finished, run Save-TMGWebListener to save your changes`n"
 }
 
-function Set-TMGWebListener {
+function Add-TMGIPRangeToNetwork {
+	Param( 
+		[parameter(Mandatory=$true)] [string]$NetworkName,
+		[parameter(Mandatory=$true)] [string]$LowIP,
+		[parameter(Mandatory=$true)] [string]$HighIP
+	)
+
+	if (-not($NetworkConf)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:NetworkConf = $tmgarray.NetworkConfiguration.Networks
+	}
+
+	$newrange = $NetworkConf.Item($NetworkName)
+	$newrange.IPRangeSet.Add($LowIP,$HighIP)
+
+	Write-Host "`nWhen you're finished, run Save-TMGNetworkConfiguration to save your changes`n"
+}
+
+function Add-TMGAdapterRangeToNetwork {
+	Param( 
+		[parameter(Mandatory=$true)] [string]$NetworkName,
+		[parameter(Mandatory=$true)] [string]$AdapterName
+	)
+
+	if (-not($NetworkConf)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:NetworkConf = $tmgarray.NetworkConfiguration.Networks
+	}
+	
+	if (-not($TMGServer)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$global:TMGServer = $fpcroot.GetContainingServer()
+	}
+	
+	$adap = $TMGServer.Adapters | Where-Object -FilterScript { $_.friendlyname -eq $AdapterName }
+
+	$newrange = $NetworkConf.Item($NetworkName)
+	foreach ($elem in $adap.IpRanges) {
+	$newrange.IPRangeSet.Add(($elem | foreach {$_.IP_From}),($elem | foreach {$_.IP_To}))
+	}
+
+	Write-Host "`nWhen you're finished, run Save-TMGNetworkConfiguration to save your changes`n"
+}
+
+function Save-TMGWebListener {
 	if (-not($WebListener)) {throw "Nothing to save"}
 	try { $WebListener.Save() }
 	catch { throw $_.Exception.Message }
@@ -232,7 +278,7 @@ function Set-TMGWebListener {
 	WaitForSync
 }
 
-function Set-TMGComputerSet {
+function Save-TMGComputerSet {
 	if (-not($ComputerSet)) {throw "Nothing to save"}
 	try { $ComputerSet.Save() }
 	catch { throw $_.Exception.Message }
@@ -240,7 +286,7 @@ function Set-TMGComputerSet {
 	WaitForSync
 }
 
-function Set-TMGRules {
+function Save-TMGRules {
 	if (-not($PolicyRules)) {throw "Nothing to save"}
 	try { $PolicyRules.Save() }
 	catch { throw $_.Exception.Message }
@@ -248,7 +294,7 @@ function Set-TMGRules {
 	WaitForSync
 }
 
-function Set-TMGProtocols {
+function Save-TMGProtocols {
 	if (-not($Protocol)) {throw "Nothing to save"}
 	try { $Protocol.Save() }
 	catch { throw $_.Exception.Message }
@@ -256,9 +302,17 @@ function Set-TMGProtocols {
 	WaitForSync
 }
 
-function Set-TMGStaticRoute {
+function Save-TMGStaticRoute {
 	if (-not($StRoute)) {throw "Nothing to save"}
 	try { $StRoute.Save() }
+	catch { throw $_.Exception.Message }
+	write-host "Saving..."
+	WaitForSync
+}
+
+function Save-TMGNetworkConfiguration {
+	if (-not($NetworkConf)) {throw "Nothing to save"}
+	try { $NetworkConf.Save() }
 	catch { throw $_.Exception.Message }
 	write-host "Saving..."
 	WaitForSync
