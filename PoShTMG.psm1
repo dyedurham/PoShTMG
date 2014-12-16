@@ -37,8 +37,8 @@ Add-Type -TypeDefinition @"
 Add-Type -TypeDefinition @"
 	[System.Flags] public enum PublishedServerType {
 		HTTP  = 0,
-		SSL  = 1,
-		HTTPandSSL  = 2,
+		HTTPS  = 1,
+		HTTPAndHTTPS  = 2,
 		FTP = 3
 	}
 "@
@@ -112,6 +112,7 @@ function New-TMGWebPublishingRule {
 		[bool]$TranslateLinks = 0,
 		[bool]$Enabled,
 		[int]$ServerAuthentication = 4,
+		[int]$ServerType,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
 		[switch]$ForwardOriginalHostHeader,
@@ -453,8 +454,8 @@ function New-TMGWebListener {
 		[bool]$HTMLAuthentication,
 		[string]$SSODomainNames,
 		[string]$CertThumbprint,
-		[int]$ConnectionTimeout = $([int]::MinValue)
-		[int]UnlimitedNumberOfConnections = $([int]::MinValue)
+		[int]$ConnectionTimeout = $([int]::MinValue),
+		[int]$UnlimitedNumberOfConnections = $([int]::MinValue)
 		
 	)
 
