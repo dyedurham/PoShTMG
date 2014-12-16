@@ -598,53 +598,56 @@ param
     [Parameter(Mandatory=$false)] [int]$SpecialHTTPLimitPerMinute = $([int]::MinValue)
 )
 
-	$fpcroot = New-Object -ComObject fpc.root
-	$tmgarray = $fpcroot.GetContainingArray()
+	if (-not($ConnLimit)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ConnLimit = $ConnLimit
+	}
 
 	if ($Enabled -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.Enabled = $Enabled
+		$ConnLimit.Enabled = $Enabled
 	}
 	if ($LogQuotaRejectedTraffic -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.LogQuotaRejectedTraffic = $LogQuotaRejectedTraffic
+		$ConnLimit.LogQuotaRejectedTraffic = $LogQuotaRejectedTraffic
 	}
 
 	if ($DefaultUDPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.UDPLimit = $DefaultUDPLimit
+		$ConnLimit.DefaultLimit.UDPLimit = $DefaultUDPLimit
 	}
 	if ($DefaultTCPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimit = $DefaultTCPLimit
+		$ConnLimit.DefaultLimit.TCPLimit = $DefaultTCPLimit
 	}
 	if ($DefaultOtherLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.OtherLimit = $DefaultOtherLimit
+		$ConnLimit.DefaultLimit.OtherLimit = $DefaultOtherLimit
 	}
 	if ($DefaultTCPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimitPerMinute = $DefaultTCPLimitPerMinute
+		$ConnLimit.DefaultLimit.TCPLimitPerMinute = $DefaultTCPLimitPerMinute
 	}
 	if ($DefaultHTTPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.HTTPLimitPerMinute = $DefaultHTTPLimitPerMinute
+		$ConnLimit.DefaultLimit.HTTPLimitPerMinute = $DefaultHTTPLimitPerMinute
 	}
 	
 	if ($SpecialUDPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.UDPLimit = $SpecialUDPLimit
+		$ConnLimit.SpecialLimit.UDPLimit = $SpecialUDPLimit
 	}
 	if ($SpecialTCPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.TCPLimit = $SpecialTCPLimit
+		$ConnLimit.SpecialLimit.TCPLimit = $SpecialTCPLimit
 	}
 	if ($SpecialOtherLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.OtherLimit = $SpecialOtherLimit
+		$ConnLimit.SpecialLimit.OtherLimit = $SpecialOtherLimit
 	}
 	if ($SpecialTCPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.TCPLimitPerMinute = $SpecialTCPLimitPerMinute
+		$ConnLimit.SpecialLimit.TCPLimitPerMinute = $SpecialTCPLimitPerMinute
 	}
 	if ($SpecialHTTPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.HTTPLimitPerMinute = $SpecialHTTPLimitPerMinute
+		$ConnLimit.SpecialLimit.HTTPLimitPerMinute = $SpecialHTTPLimitPerMinute
 	}
 	
 	Write-Host "`nWhen you're finished, run Save-TMGFloodMitigationConfiguration to save your changes`n"
 }
 
 function  Save-TMGFloodMitigationConfiguration {
-	try { $tmgarray.ArrayPolicy.ConnectionLimitPolicy.Save() }
+	try { $ConnLimit.Save() }
 	catch { throw $_.Exception.Message }
 	write-host "Saving..."
 	WaitForSync
