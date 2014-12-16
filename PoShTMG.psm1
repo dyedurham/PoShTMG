@@ -48,6 +48,19 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#CredentialsDelegation
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum CredentialsDelegation {
+		NoneClientMay  = 0,				#fpcDelegationNonePassThrough
+		NoneClientCannot  = 1,			#fpcDelegationNoneBlock
+		RSASecurID  = 2,				#fpcDelegationSecurID 
+		Basic = 3,						#fpcDelegationBasic
+		NTLM = 4,						#fpcDelegationNTLM
+		Negotiate = 5,					#fpcDelegationSPNEGO
+		Kerberos = 6					#fpcDelegationKerberosConstrained
+	}
+"@
+
 ########	CONSTANTS
 
 #LINK TRANSLATION MAPPING GUID
@@ -152,6 +165,7 @@ function New-TMGWebPublishingRule {
 		[parameter(Mandatory=$true)] [string]$PublicNames,
 		[ValidateSet("Allow","Deny")][string]$Action,
 		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
+		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication = "NTLM",
 		[string]$DeniedRuleRedirectURL,
 		[string]$LogoffURL,
 		[string]$SourceNetwork,
@@ -167,7 +181,6 @@ function New-TMGWebPublishingRule {
 		[bool]$SameAsInternalPath,
 		[bool]$TranslateLinks = 0,
 		[bool]$Enable,
-		[int]$ServerAuthentication = 4,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
 		[switch]$ForwardOriginalHostHeader,
@@ -191,7 +204,7 @@ function New-TMGWebPublishingRule {
 	$newrule.WebPublishingProperties.LogoffURL = $LogoffURL
 	$newrule.WebPublishingProperties.SetWebListener($WebListener)
 	$newrule.WebPublishingProperties.TranslateLinks = 0
-	$newrule.WebPublishingProperties.CredentialsDelegationType = $ServerAuthentication
+	$newrule.WebPublishingProperties.CredentialsDelegationType = [int][CredentialsDelegation]::($ServerAuthentication)
 	$newrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL
 	$newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort
 	$newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort
