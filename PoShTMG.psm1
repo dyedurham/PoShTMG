@@ -94,7 +94,7 @@ function New-TMGWebPublishingRule {
 		[parameter(Mandatory=$true)] [string]$ServerIP,
 		[parameter(Mandatory=$true)] [string]$WebListener,
 		[parameter(Mandatory=$true)] [string]$PublicNames,
-		[ValidateSet("HTTP","SSL","HTTPandSSL","FTP")][string]$ServerType,
+		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
 		[ValidateSet("Allow","Deny")][string]$Action,
 		[string]$DeniedRuleRedirectURL,
 		[string]$LogoffURL,
