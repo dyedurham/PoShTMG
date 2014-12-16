@@ -98,41 +98,51 @@ function New-TMGWebPublishingRule {
 	Creates a new TMG Web Publishing Rule.
 	.DESCRIPTION
 	Uses COM to create the TMG Web Publishing Rules on the array that this TMG server is a member of.
-	
-	Parameter definitions:
-	Parameter names match the option name in the GUI Web Publishing Rule Properties dialog where possible.
-	eg.
-	-Enable					=	Enable check box on the General tab.
-	
-	Options which don't match or may be ambiguous:
-	-ServerHostName			=	To tab / The rule applies to the published site.
-	-ServerIP				=	To tab / Computer name or IP address...
-	-ForwardOriginalHostHeader
-							=	To tab.
-	-PublicNames			=	A comma separated list of DNS and IP addresses specified on the Public Name tab.
-	-SourceNetwork			=	A comma separated list of network objects to add to the [applies to traffic] box on the From tab.
-	-SourceComputerSet		=	A comma separated list of computer set objects to add to the [applies to traffic] box on the From tab.
-	-SourceComputer			=	A comma separated list of computer objects to add to the [applies to traffic] box on the From tab.
-	-ExcludeNetwork			=	A comma separated list of network objects to add to the Exceptions box on the From tab.
-	-ExcludeComputerSet		=	A comma separated list of computer set objects to add to the Exceptions box on the From tab.
-	-ExcludeComputer		=	A comma separated list of computer objects to add to the Exceptions box on the From tab.
-	-DeniedRuleRedirectURL	=	Action tab / Redirect HTTP requests... box. Setting this also checks the check box and nullifying unchecks.
-	-InternalPathMapping	=	Paths tab - The Internal Path setting. NOTE: This item must be paired with either ExternalPathMapping or SameAsInternalPath.
-	-ExternalPathMapping	=	Paths tab - The External Path setting. Must be paired with InternalPathMapping.
-	-SameAsInternalPath		=	Paths tab - This option is a bool, paired with the Internal Path setting autofills ExternalPathMapping to match.
-	-LinkTranslationReplace	=	Link Translation tab / Configure / Replace. Must be paired with LinkTranslationReplaceWith.
-	-LinkTranslationReplaceWith
-							=	Link Translation tab / Configure / With. Must be paired with LinkTranslationReplace.
-	-TranslateLinks			=	Link Translation tab / Apply link translation...
-	-InternalPathMapping
-	-ServerAuthentication	=	Authentication Delegation tab / Method used...
-	-HTTPRedirectPort		=	Bridging tab.
-	-SSLRedirectPort		=	Bridging tab.
-	
+
+	Parameter names match the option name in the GUI Web Publishing Rule Properties dialog where possible, others have been added to parameter help.
+	Run Get-Help New-TMGWebPublishingRule -Full
+	.PARAMETER ServerHostName
+	GUI Location: To tab / The rule applies to the published site.
+	.PARAMETER ServerIP
+	GUI Location: To tab / Computer name or IP address...
+	.PARAMETER ForwardOriginalHostHeader
+	GUI Location: To tab.
+	.PARAMETER PublicNames
+	A comma separated list of DNS and IP addresses specified on the Public Name tab.
+	.PARAMETER SourceNetwork
+	A comma separated list of network objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER SourceComputerSet
+	A comma separated list of computer set objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER SourceComputer
+	A comma separated list of computer objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER ExcludeNetwork
+	A comma separated list of network objects to add to the Exceptions box on the From tab.
+	.PARAMETER ExcludeComputerSet
+	A comma separated list of computer set objects to add to the Exceptions box on the From tab.
+	.PARAMETER ExcludeComputer
+	A comma separated list of computer objects to add to the Exceptions box on the From tab.
+	.PARAMETER DeniedRuleRedirectURL
+	GUI Location: Action tab / Redirect HTTP requests... box. Setting this also checks the check box and nullifying unchecks.
+	.PARAMETER InternalPathMapping
+	GUI Location: Paths tab - The Internal Path setting. NOTE: This item must be paired with either ExternalPathMapping or SameAsInternalPath.
+	.PARAMETER ExternalPathMapping
+	GUI Location: Paths tab - The External Path setting. Must be paired with InternalPathMapping.
+	.PARAMETER SameAsInternalPath
+	GUI Location: Paths tab - This option is a bool, paired with the Internal Path setting autofills ExternalPathMapping to match.
+	.PARAMETER LinkTranslationReplace
+	GUI Location: Link Translation tab / Configure / Replace. Must be paired with LinkTranslationReplaceWith.
+	.PARAMETER LinkTranslationReplaceWith
+	GUI Location: Link Translation tab / Configure / With. Must be paired with LinkTranslationReplace.
+	.PARAMETER TranslateLinks
+	GUI Location: Link Translation tab / Apply link translation...
+	.PARAMETER ServerAuthentication
+	GUI Location: Authentication Delegation tab / Method used...
+	.PARAMETER HTTPRedirectPort
+	GUI Location: Bridging tab.
+	.PARAMETER SSLRedirectPort
+	GUI Location: Bridging tab.
 	.EXAMPLE
 	New-TMGWebPublishingRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1 -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
-	.PARAMETER Filter
-	The string you want to filter on. Leave blank or don't specify for no filtering.
 #>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
@@ -203,6 +213,7 @@ function New-TMGWebPublishingRule {
 	if ($SourceComputerSet) {
 		foreach ($src in ([array]$SourceComputerSet -split ",")) {
 				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
+				}
 	
 	if ($SourceComputer) {
 		foreach ($src in ([array]$SourceComputer -split ",")) {
@@ -212,6 +223,7 @@ function New-TMGWebPublishingRule {
 	if ($ExcludeNetwork) {
 		foreach ($exc in ([array]$ExcludeNetwork -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$exc",1)}
+				}
 	
 	if ($ExcludeComputerSet) {
 		foreach ($exc in ([array]$ExcludeComputerSet -split ",")) {
@@ -225,9 +237,8 @@ function New-TMGWebPublishingRule {
 	
 	if ($PublicNames) {
 		foreach ($pnm in ([array]$PublicNames -split ",")) {
-				$newrule.WebPublishingProperties.PublicNames.Add($pnm)
+				$newrule.WebPublishingProperties.PublicNames.Add($pnm) }
 				}
-		}
 	
 	if ($LinkTranslationReplace) {
 		$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
