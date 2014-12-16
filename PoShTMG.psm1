@@ -93,6 +93,47 @@ param
 }
 
 function New-TMGWebPublishingRule {
+<#
+	.SYNOPSIS
+	Creates a new TMG Web Publishing Rule.
+	.DESCRIPTION
+	Uses COM to create the TMG Web Publishing Rules on the array that this TMG server is a member of.
+	
+	Parameter definitions:
+	Parameter names match the option name in the GUI Web Publishing Rule Properties dialog where possible.
+	eg.
+	-Enable					=	Enable check box on the General tab.
+	
+	Options which don't match or may be ambiguous:
+	-ServerHostName			=	To tab / The rule applies to the published site.
+	-ServerIP				=	To tab / Computer name or IP address...
+	-ForwardOriginalHostHeader
+							=	To tab.
+	-PublicNames			=	A comma separated list of DNS and IP addresses specified on the Public Name tab.
+	-SourceNetwork			=	A comma separated list of network objects to add to the [applies to traffic] box on the From tab.
+	-SourceComputerSet		=	A comma separated list of computer set objects to add to the [applies to traffic] box on the From tab.
+	-SourceComputer			=	A comma separated list of computer objects to add to the [applies to traffic] box on the From tab.
+	-ExcludeNetwork			=	A comma separated list of network objects to add to the Exceptions box on the From tab.
+	-ExcludeComputerSet		=	A comma separated list of computer set objects to add to the Exceptions box on the From tab.
+	-ExcludeComputer		=	A comma separated list of computer objects to add to the Exceptions box on the From tab.
+	-DeniedRuleRedirectURL	=	Action tab / Redirect HTTP requests... box. Setting this also checks the check box and nullifying unchecks.
+	-InternalPathMapping	=	Paths tab - The Internal Path setting. NOTE: This item must be paired with either ExternalPathMapping or SameAsInternalPath.
+	-ExternalPathMapping	=	Paths tab - The External Path setting. Must be paired with InternalPathMapping.
+	-SameAsInternalPath		=	Paths tab - This option is a bool, paired with the Internal Path setting autofills ExternalPathMapping to match.
+	-LinkTranslationReplace	=	Link Translation tab / Configure / Replace. Must be paired with LinkTranslationReplaceWith.
+	-LinkTranslationReplaceWith
+							=	Link Translation tab / Configure / With. Must be paired with LinkTranslationReplace.
+	-TranslateLinks			=	Link Translation tab / Apply link translation...
+	-InternalPathMapping
+	-ServerAuthentication	=	Authentication Delegation tab / Method used...
+	-HTTPRedirectPort		=	Bridging tab.
+	-SSLRedirectPort		=	Bridging tab.
+	
+	.EXAMPLE
+	New-TMGWebPublishingRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1 -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
+	.PARAMETER Filter
+	The string you want to filter on. Leave blank or don't specify for no filtering.
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
 		[parameter(Mandatory=$true)] [string]$ServerHostName,
@@ -115,7 +156,7 @@ function New-TMGWebPublishingRule {
 		[string]$LinkTranslationReplaceWith,
 		[bool]$SameAsInternalPath,
 		[bool]$TranslateLinks = 0,
-		[bool]$Enabled,
+		[bool]$Enable,
 		[int]$ServerAuthentication = 4,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
@@ -145,7 +186,7 @@ function New-TMGWebPublishingRule {
 	$newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort
 	$newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort
 	$newrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials
-	$newrule.WebPublishingProperties.Enabled = $Enabled
+	$newrule.WebPublishingProperties.Enabled = $Enable
 	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
 	
 	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
@@ -153,12 +194,34 @@ function New-TMGWebPublishingRule {
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
 	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
-		if ($SourceNetwork) {$newrule.SourceSelectionIPs.Networks.Add("$SourceNetwork",0)}
-		if ($SourceComputerSet) {$newrule.SourceSelectionIPs.ComputerSets.Add("$SourceComputerSet",0)}
-		if ($SourceComputer) {$newrule.SourceSelectionIPs.Computers.Add("$SourceComputer",0)}
-	if ($ExcludeNetwork) {$newrule.SourceSelectionIPs.Networks.Add("$ExcludeNetwork",1)}
-	if ($ExcludeComputerSet) {$newrule.SourceSelectionIPs.ComputerSets.Add("$ExcludeComputerSet",1)}
-	if ($ExcludeComputer) {$newrule.SourceSelectionIPs.Computers.Add("$ExcludeComputer",1)}
+	
+	if ($SourceNetwork) {
+		foreach ($src in ([array]$SourceNetwork -split ",")) {
+				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
+				}
+		
+	if ($SourceComputerSet) {
+		foreach ($src in ([array]$SourceComputerSet -split ",")) {
+				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
+	
+	if ($SourceComputer) {
+		foreach ($src in ([array]$SourceComputer -split ",")) {
+				$newrule.SourceSelectionIPs.Computers.Add("$src",0)}
+				}
+	
+	if ($ExcludeNetwork) {
+		foreach ($exc in ([array]$ExcludeNetwork -split ",")) {
+				$newrule.SourceSelectionIPs.Networks.Add("$exc",1)}
+	
+	if ($ExcludeComputerSet) {
+		foreach ($exc in ([array]$ExcludeComputerSet -split ",")) {
+				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1)}
+				}
+	
+	if ($ExcludeComputer) {
+		foreach ($exc in ([array]$ExcludeComputer -split ",")) {
+				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
+				}
 	
 	if ($PublicNames) {
 		foreach ($pnm in ([array]$PublicNames -split ",")) {
