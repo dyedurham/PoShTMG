@@ -446,7 +446,7 @@ function New-TMGWebListener {
 		[parameter(Mandatory=$true)] [string]$Name,
 		[string]$ListeningIP,
 		[string]$CustomFormsDirectory,
-		$RedirectHTTPAsHTTPS = [RedirectHTTPAsHTTPS]::Always,
+		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$RedirectHTTPAsHTTPS,
 		$SSLPort,
 		$HTTPPort = 80,
 		[int]$MaxConnections,
@@ -471,7 +471,8 @@ function New-TMGWebListener {
 	catch { }
 
 	$newrule = $WebListener.Add("$Name")
-	$newrule.Properties.RedirectHTTPAsHTTPS = $RedirectHTTPAsHTTPS
+	if ($RedirectHTTPAsHTTPS) {$newrule.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
+	
 	$newrule.Properties.TCPPort = $HTTPPort
 	$newrule.Properties.SSOEnabled = $SSOEnabled
 
