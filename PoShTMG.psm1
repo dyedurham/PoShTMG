@@ -78,6 +78,8 @@ function New-TMGWebPublishingRule {
 		[string]$ExcludeComputer,
 		[string]$InternalPathMapping,
 		[string]$ExternalPathMapping,
+		[string]$LinkTranslationReplace,
+		[string]$LinkTranslationReplaceWith,
 		[bool]$SameAsInternalPath,
 		[bool]$Action = 0,
 		[bool]$TranslateLinks = 0,
@@ -129,6 +131,11 @@ function New-TMGWebPublishingRule {
 	[array]$PublicNames = $PublicNames -split ","
 	foreach ($pnm in $PublicNames) {
 	$newrule.WebPublishingProperties.PublicNames.Add($pnm)
+	}
+	
+	if ($LinkTranslationReplace) {
+	$nlt = $newrule.VendorParametersSets.Item("{3563FFF5-DF93-40eb-ABC3-D24B5F14D8AA}")
+	$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
 	}
 	
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
@@ -416,6 +423,7 @@ function New-TMGWebListener {
 		$HTTPPort = 80,
 		[int]$MaxConnections,
 		[bool]$SSOEnabled = 0,
+		[bool]$HTMLAuthentication,
 		[string]$SSODomainNames,
 		[string]$CertThumbprint
 	)
@@ -436,11 +444,14 @@ function New-TMGWebListener {
 	if ($SSLPort) {$newrule.Properties.SSLPort = $SSLPort}
 	$newrule.Properties.TCPPort = $HTTPPort
 	if ($MaxConnections -gt 0) {$newrule.Properties.NumberOfConnections = $MaxConnections}
-	$newrule.Properties.AuthenticationSchemes.Add("FBA with AD",0)
 	$newrule.Properties.SSOEnabled = $SSOEnabled
 	if ($SSODomainNames) {$newrule.Properties.SSOEnabled = 1; $newrule.Properties.SSODomainNames.Add($SSODomainNames)}
+		
+	if ($HTMLAuthentication -eq 1) {
+	$newrule.Properties.AuthenticationSchemes.Add("FBA with AD",0)
 	$newrule.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
-
+	}
+	
 	if ($ListeningIP) {
 	  $newrule.IPsOnNetworks.Add("EXTERNAL",2,$ListeningIP)
 	} else {
