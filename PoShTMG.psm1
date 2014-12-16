@@ -141,28 +141,29 @@ function New-TMGWebPublishingRule {
 	$newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort
 	$newrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials
 	$newrule.WebPublishingProperties.Enabled = $Enabled
+	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
 	
 	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
 	if ($ServerType) {$newrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType}
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
-	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
 	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
-	if ($SourceNetwork) {$newrule.SourceSelectionIPs.Networks.Add("$SourceNetwork",0)}
+		if ($SourceNetwork) {$newrule.SourceSelectionIPs.Networks.Add("$SourceNetwork",0)}
+		if ($SourceComputerSet) {$newrule.SourceSelectionIPs.ComputerSets.Add("$SourceComputerSet",0)}
+		if ($SourceComputer) {$newrule.SourceSelectionIPs.Computers.Add("$SourceComputer",0)}
 	if ($ExcludeNetwork) {$newrule.SourceSelectionIPs.Networks.Add("$ExcludeNetwork",1)}
-	if ($SourceComputerSet) {$newrule.SourceSelectionIPs.ComputerSets.Add("$SourceComputerSet",0)}
 	if ($ExcludeComputerSet) {$newrule.SourceSelectionIPs.ComputerSets.Add("$ExcludeComputerSet",1)}
-	if ($SourceComputer) {$newrule.SourceSelectionIPs.Computers.Add("$SourceComputer",0)}
 	if ($ExcludeComputer) {$newrule.SourceSelectionIPs.Computers.Add("$ExcludeComputer",1)}
 	
-	[array]$PublicNames = $PublicNames -split ","
-	foreach ($pnm in $PublicNames) {
-	$newrule.WebPublishingProperties.PublicNames.Add($pnm)
-	}
+	if ($PublicNames) {
+		foreach ($pnm in ([array]$PublicNames -split ",")) {
+				$newrule.WebPublishingProperties.PublicNames.Add($pnm)
+				}
+		}
 	
 	if ($LinkTranslationReplace) {
-	$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
-	$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
+		$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
+		$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
 	}
 	
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
@@ -443,19 +444,20 @@ param
 function New-TMGWebListener {
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
+		[parameter(Mandatory=$true)][ValidateSet("NoAuth","HTTP","HTMLForm")] [string]$ClientAuthentication,
+		[ValidateSet("Disabled","IfAuthenticated","Always")][string]$RedirectHTTPAsHTTPS,
 		[string]$ListeningIP,
 		[string]$CustomFormsDirectory,
-		[ValidateSet("Disabled","IfAuthenticated","Always")][string]$RedirectHTTPAsHTTPS,
-		$SSLPort,
-		$HTTPPort = 80,
-		[int]$MaxConnections,
-		[bool]$SSOEnabled = 0,
-		[bool]$HTMLAuthentication,
 		[string]$SSODomainNames,
 		[string]$CertThumbprint,
+		[int]$SSLPort,
+		[int]$HTTPPort = 80,
+		[int]$MaxConnections,
+		[int]$SSLClientCertificateTimeout,
 		[int]$ConnectionTimeout = $([int]::MinValue),
-		[int]$UnlimitedNumberOfConnections = $([int]::MinValue)
-		
+		[int]$UnlimitedNumberOfConnections = $([int]::MinValue),
+		[bool]$SSOEnabled = 0,
+		[bool]$SSLClientCertificateTimeoutEnabled
 	)
 
 	if (-not($WebListener)) {
@@ -470,24 +472,31 @@ function New-TMGWebListener {
 	catch { }
 
 	$newlistener = $WebListener.Add("$Name")
-	if ($RedirectHTTPAsHTTPS) {$newlistener.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
-	
 	$newlistener.Properties.TCPPort = $HTTPPort
 	$newlistener.Properties.SSOEnabled = $SSOEnabled
-
-	if ($SSLPort) {$newlistener.Properties.SSLPort = $SSLPort}
-	if ($MaxConnections -gt 0) {$newlistener.Properties.NumberOfConnections = $MaxConnections}
+	$newlistener.Properties.NumberOfConnections = $MaxConnections
+	$newlistener.Properties.SSLPort = $SSLPort
+	$newlistener.Properties.SSLClientCertificateTimeoutEnabled = $SSLClientCertificateTimeoutEnabled
+	$newlistener.Properties.SSLClientCertificateTimeout = $SSLClientCertificateTimeout
+	
 	if ($SSODomainNames) {$newlistener.Properties.SSOEnabled = 1; $newlistener.Properties.SSODomainNames.Add($SSODomainNames)}
+	if ($RedirectHTTPAsHTTPS) {$newlistener.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
 
-	if ($HTMLAuthentication -eq 1) {
-	$newlistener.Properties.AuthenticationSchemes.Add("FBA with AD",0)
-	$newlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
+	switch ($ClientAuthentication) {
+		NoAuth {
+			$newlistener.Properties.IntegratedWindowsAuthentication = 0
+		}
+		HTTP { <# DEFAULT #> }
+		HTMLForm {
+			$newlistener.Properties.AuthenticationSchemes.Add("FBA with AD",0)
+			$newlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
+		}
 	}
-
+	
 	if ($ListeningIP) {
-	  $newlistener.IPsOnNetworks.Add("EXTERNAL",2,$ListeningIP)
-	} else {
-	  $newlistener.IPsOnNetworks.Add("EXTERNAL",0,"")
+		$newlistener.IPsOnNetworks.Add("EXTERNAL",2,$ListeningIP)
+		} else {
+		$newlistener.IPsOnNetworks.Add("EXTERNAL",0,"")
 	}
 
 	if ($CertThumbprint) {
