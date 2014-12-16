@@ -67,14 +67,23 @@ function New-TMGWebPublishingRule {
 		[parameter(Mandatory=$true)] [string]$ServerHostName,
 		[parameter(Mandatory=$true)] [string]$ServerIP,
 		[parameter(Mandatory=$true)] [string]$WebListener,
-		[parameter(Mandatory=$true)] [string]$PublicNames,
+		[parameter(Mandatory=$true)] [array]$PublicNames,
+		[string]$DeniedRuleRedirectURL,
+		[string]$LogoffURL,
 		[string]$SourceNetwork,
+		[string]$ExcludeNetwork,
+		[string]$SourceComputerSet,
+		[string]$ExcludeComputerSet,
+		[string]$SourceComputer,
+		[string]$ExcludeComputer,
 		[string]$InternalPathMapping,
 		[string]$ExternalPathMapping,
 		[bool]$SameAsInternalPath,
 		[bool]$Action = 0,
 		[bool]$TranslateLinks = 0,
 		[int]$ServerAuthentication = 4,
+		[int]$SSLRedirectPort,
+		[int]$HTTPRedirectPort,
 		[switch]$ForwardOriginalHostHeader
 	)
 
@@ -93,13 +102,28 @@ function New-TMGWebPublishingRule {
 	$newrule.Action = $Action
 	$newrule.WebPublishingProperties.WebSite = $ServerHostName
 	$newrule.WebPublishingProperties.PublishedServer = $ServerIP
+	## APPLY ACCESS POLICY IF SPECIFIED
 	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
-	if ($SourceNetwork) {$newrule.SourceSelectionIPs.Networks.RemoveAll(); $newrule.SourceSelectionIPs.Networks.Add("$SourceNetwork",0)}
+	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
+	if ($SourceNetwork) {$newrule.SourceSelectionIPs.Networks.Add("$SourceNetwork",0)}
+	if ($ExcludeNetwork) {$newrule.SourceSelectionIPs.Networks.Add("$ExcludeNetwork",1)}
+	if ($SourceComputerSet) {$newrule.SourceSelectionIPs.ComputerSets.Add("$SourceComputerSet",0)}
+	if ($ExcludeComputerSet) {$newrule.SourceSelectionIPs.ComputerSets.Add("$ExcludeComputerSet",1)}
+	if ($SourceComputer) {$newrule.SourceSelectionIPs.Computers.Add("$SourceComputer",0)}
+	if ($ExcludeComputer) {$newrule.SourceSelectionIPs.Computers.Add("$ExcludeComputer",1)}
+	$newrule.WebPublishingProperties.LogoffURL = $LogoffURL
 	$newrule.WebPublishingProperties.SetWebListener($WebListener)
-	$newrule.WebPublishingProperties.PublicNames.Add($PublicNames)
 	$newrule.WebPublishingProperties.TranslateLinks = 0
 	$newrule.WebPublishingProperties.CredentialsDelegationType = $ServerAuthentication
-
+	$newrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL
+	$newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort
+	$newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort
+	
+	
+	foreach ($pnm in $PublicNames) {
+	$newrule.WebPublishingProperties.PublicNames.Add($pnm)
+	}
+	
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
 	if ($InternalPathMapping) {$newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping)}
 
