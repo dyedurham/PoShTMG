@@ -37,8 +37,8 @@ Add-Type -TypeDefinition @"
 Add-Type -TypeDefinition @"
 	[System.Flags] public enum PublishedServerType {
 		HTTP  = 0,
-		SSL  = 1,
-		HTTPandSSL  = 2,
+		HTTPS  = 1,
+		HTTPAndHTTPS  = 2,
 		FTP = 3
 	}
 "@
@@ -111,9 +111,9 @@ function New-TMGWebPublishingRule {
 		[bool]$TranslateLinks = 0,
 		[bool]$Enabled,
 		[int]$ServerAuthentication = 4,
+		[int]$ServerType,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
-		[int]$ServerType,
 		[switch]$ForwardOriginalHostHeader,
 		[switch]$StripDomainFromCredentials
 	)
