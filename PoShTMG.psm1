@@ -587,47 +587,44 @@ param
 
 	$fpcroot = New-Object -ComObject fpc.root
 	$tmgarray = $fpcroot.GetContainingArray()
-	$ConnectionLimitPolicy = $tmgarray.ArrayPolicy.ConnectionLimitPolicy
-	$DefaultLimit = $ConnectionLimitPolicy.DefaultLimit
-	$SpecialLimit = $ConnectionLimitPolicy.SpecialLimit
 
 	if ($Enabled -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.UDPLimit
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.Enabled = $Enabled
 	}
 	if ($LogQuotaRejectedTraffic -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimit
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.LogQuotaRejectedTraffic = $LogQuotaRejectedTraffic
 	}
 
 	if ($DefaultUDPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.UDPLimit
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.UDPLimit = $DefaultUDPLimit
 	}
 	if ($DefaultTCPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimit
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimit = $DefaultTCPLimit
 	}
 	if ($DefaultOtherLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.OtherLimit
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.OtherLimit = $DefaultOtherLimit
 	}
 	if ($DefaultTCPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimitPerMinute
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimitPerMinute = $DefaultTCPLimitPerMinute
 	}
 	if ($DefaultHTTPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.HTTPLimitPerMinute
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.HTTPLimitPerMinute = $DefaultHTTPLimitPerMinute
 	}
 	
 	if ($SpecialUDPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.UDPLimit
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.UDPLimit = $SpecialUDPLimit
 	}
 	if ($SpecialTCPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.TCPLimit
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.TCPLimit = $SpecialTCPLimit
 	}
 	if ($SpecialOtherLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.OtherLimit
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.OtherLimit = $SpecialOtherLimit
 	}
 	if ($SpecialTCPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.TCPLimitPerMinute
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.TCPLimitPerMinute = $SpecialTCPLimitPerMinute
 	}
 	if ($SpecialHTTPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.HTTPLimitPerMinute
+		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.HTTPLimitPerMinute = $SpecialHTTPLimitPerMinute
 	}
 }
 
