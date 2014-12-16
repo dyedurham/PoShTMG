@@ -4,6 +4,8 @@
 ###                                                          ###
 ################################################################
 
+########	TYPE DEFINITIONS
+
 #PolicyRuleTypes
 Add-Type -TypeDefinition @"
 	[System.Flags] public enum PolicyRuleTypes {
@@ -31,8 +33,23 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#PublishedServerType
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum PublishedServerType {
+		HTTP  = 0,
+		SSL  = 1,
+		HTTPandSSL  = 2,
+		FTP = 3
+	}
+"@
 
+########	CONSTANTS
 
+#LINK TRANSLATION MAPPING GUID
+Set-Variable LinkTransGUID -option Constant -value "{3563FFF5-DF93-40eb-ABC3-D24B5F14D8AA}"
+
+########	FUNCTIONS AND MAGIC
+####		(DON'T CHANGE THIS STUFF)
 
 function Get-TMGWebPublishingRules {
 <#
@@ -143,7 +160,7 @@ function New-TMGWebPublishingRule {
 	}
 	
 	if ($LinkTranslationReplace) {
-	$nlt = $newrule.VendorParametersSets.Item("{3563FFF5-DF93-40eb-ABC3-D24B5F14D8AA}")
+	$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
 	$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
 	}
 	
