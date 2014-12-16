@@ -94,6 +94,8 @@ function New-TMGWebPublishingRule {
 		[parameter(Mandatory=$true)] [string]$ServerIP,
 		[parameter(Mandatory=$true)] [string]$WebListener,
 		[parameter(Mandatory=$true)] [string]$PublicNames,
+		[ValidateSet("HTTP","SSL","HTTPandSSL","FTP")][string]$ServerType,
+		[ValidateSet("Allow","Deny")][string]$Action,
 		[string]$DeniedRuleRedirectURL,
 		[string]$LogoffURL,
 		[string]$SourceNetwork,
@@ -107,13 +109,11 @@ function New-TMGWebPublishingRule {
 		[string]$LinkTranslationReplace,
 		[string]$LinkTranslationReplaceWith,
 		[bool]$SameAsInternalPath,
-		[bool]$Action = 0,
 		[bool]$TranslateLinks = 0,
 		[bool]$Enabled,
 		[int]$ServerAuthentication = 4,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
-		[int]$ServerType,
 		[switch]$ForwardOriginalHostHeader,
 		[switch]$StripDomainFromCredentials
 	)
@@ -130,7 +130,6 @@ function New-TMGWebPublishingRule {
 	catch {	}
 
 	$newrule = $PolicyRules.AddWebPublishingRule("$Name")
-	$newrule.Action = $Action
 	$newrule.WebPublishingProperties.WebSite = $ServerHostName
 	$newrule.WebPublishingProperties.PublishedServer = $ServerIP
 	$newrule.WebPublishingProperties.LogoffURL = $LogoffURL
@@ -142,7 +141,9 @@ function New-TMGWebPublishingRule {
 	$newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort
 	$newrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials
 	$newrule.WebPublishingProperties.Enabled = $Enabled
-	$newrule.WebPublishingProperties.PublishedServerType = $ServerType
+	
+	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
+	if ($ServerType) {$newrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType}
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
 	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
@@ -209,7 +210,7 @@ param
 function New-TMGAccessRule {
 	Param(
 		[parameter(Mandatory=$true)] [string]$Name,
-		[bool]$Action = 0,
+		[ValidateSet("Allow","Deny")][string]$Action,
 		[int]$ProtocolSelectionMethod = 1,
 		[string]$ProtocolName,
 		[string]$AppliedComputerSet
@@ -227,7 +228,7 @@ function New-TMGAccessRule {
 	catch { }
 
 	$newrule = $PolicyRules.AddAccessRule("$Name")
-	$newrule.Action = $Action
+	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
 	$newrule.AccessProperties.ProtocolSelectionMethod = $ProtocolSelectionMethod
 	$newrule.AccessProperties.SpecifiedProtocols.Add("$ProtocolName",0)
 	$newrule.SourceSelectionIPs.ComputerSets.Add("$AppliedComputerSet",0)
@@ -470,17 +471,18 @@ function New-TMGWebListener {
 
 	$newrule = $WebListener.Add("$Name")
 	$newrule.Properties.RedirectHTTPAsHTTPS = $RedirectHTTPAsHTTPS
-	if ($SSLPort) {$newrule.Properties.SSLPort = $SSLPort}
 	$newrule.Properties.TCPPort = $HTTPPort
-	if ($MaxConnections -gt 0) {$newrule.Properties.NumberOfConnections = $MaxConnections}
 	$newrule.Properties.SSOEnabled = $SSOEnabled
+
+	if ($SSLPort) {$newrule.Properties.SSLPort = $SSLPort}
+	if ($MaxConnections -gt 0) {$newrule.Properties.NumberOfConnections = $MaxConnections}
 	if ($SSODomainNames) {$newrule.Properties.SSOEnabled = 1; $newrule.Properties.SSODomainNames.Add($SSODomainNames)}
-		
+
 	if ($HTMLAuthentication -eq 1) {
 	$newrule.Properties.AuthenticationSchemes.Add("FBA with AD",0)
 	$newrule.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
 	}
-	
+
 	if ($ListeningIP) {
 	  $newrule.IPsOnNetworks.Add("EXTERNAL",2,$ListeningIP)
 	} else {
@@ -491,11 +493,11 @@ function New-TMGWebListener {
 		$certhash = (gci cert:\LocalMachine\my\$CertThumbprint).getcerthash()
 		$newrule.Properties.AppliedSSLCertificates.Add($certhash,"")
 	}
-	
+
 	if ($UnlimitedNumberOfConnections -ge 0) {
 		$newrule.Properties.UnlimitedNumberOfConnections = $UnlimitedNumberOfConnections
 	}
-	
+
 	if ($ConnectionTimeout -ge 0) {
 		$newrule.Properties.ConnectionTimeout = $ConnectionTimeout
 	}
