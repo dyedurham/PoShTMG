@@ -469,41 +469,41 @@ function New-TMGWebListener {
 	}
 	catch { }
 
-	$newrule = $WebListener.Add("$Name")
-	if ($RedirectHTTPAsHTTPS) {$newrule.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
+	$newlistener = $WebListener.Add("$Name")
+	if ($RedirectHTTPAsHTTPS) {$newlistener.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
 	
-	$newrule.Properties.TCPPort = $HTTPPort
-	$newrule.Properties.SSOEnabled = $SSOEnabled
+	$newlistener.Properties.TCPPort = $HTTPPort
+	$newlistener.Properties.SSOEnabled = $SSOEnabled
 
-	if ($SSLPort) {$newrule.Properties.SSLPort = $SSLPort}
-	if ($MaxConnections -gt 0) {$newrule.Properties.NumberOfConnections = $MaxConnections}
-	if ($SSODomainNames) {$newrule.Properties.SSOEnabled = 1; $newrule.Properties.SSODomainNames.Add($SSODomainNames)}
+	if ($SSLPort) {$newlistener.Properties.SSLPort = $SSLPort}
+	if ($MaxConnections -gt 0) {$newlistener.Properties.NumberOfConnections = $MaxConnections}
+	if ($SSODomainNames) {$newlistener.Properties.SSOEnabled = 1; $newlistener.Properties.SSODomainNames.Add($SSODomainNames)}
 
 	if ($HTMLAuthentication -eq 1) {
-	$newrule.Properties.AuthenticationSchemes.Add("FBA with AD",0)
-	$newrule.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
+	$newlistener.Properties.AuthenticationSchemes.Add("FBA with AD",0)
+	$newlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
 	}
 
 	if ($ListeningIP) {
-	  $newrule.IPsOnNetworks.Add("EXTERNAL",2,$ListeningIP)
+	  $newlistener.IPsOnNetworks.Add("EXTERNAL",2,$ListeningIP)
 	} else {
-	  $newrule.IPsOnNetworks.Add("EXTERNAL",0,"")
+	  $newlistener.IPsOnNetworks.Add("EXTERNAL",0,"")
 	}
 
 	if ($CertThumbprint) {
 		$certhash = (gci cert:\LocalMachine\my\$CertThumbprint).getcerthash()
-		$newrule.Properties.AppliedSSLCertificates.Add($certhash,"")
+		$newlistener.Properties.AppliedSSLCertificates.Add($certhash,"")
 	}
 
 	if ($UnlimitedNumberOfConnections -ge 0) {
-		$newrule.Properties.UnlimitedNumberOfConnections = $UnlimitedNumberOfConnections
+		$newlistener.Properties.UnlimitedNumberOfConnections = $UnlimitedNumberOfConnections
 	}
 
 	if ($ConnectionTimeout -ge 0) {
-		$newrule.Properties.ConnectionTimeout = $ConnectionTimeout
+		$newlistener.Properties.ConnectionTimeout = $ConnectionTimeout
 	}
 
-	Write-Host "`nWhen you're finished, run Save-TMGWebListener to save your changes`n"
+	$newlistener.Save()
 }
 
 function Add-TMGIPRangeToNetwork {
@@ -625,12 +625,15 @@ param
 	if ($SpecialHTTPLimitPerMinute -ge 0) {
 		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.HTTPLimitPerMinute = $SpecialHTTPLimitPerMinute
 	}
+	
+	Write-Host "`nWhen you're finished, run Save-TMGFloodMitigationConfiguration to save your changes`n"
 }
 
 function  Save-TMGFloodMitigationConfiguration {
-	$fpcroot = New-Object -ComObject fpc.root
-	$tmgarray = $fpcroot.GetContainingArray()
-	$tmgarray.ArrayPolicy.ConnectionLimitPolicy.Save()
+	try { $tmgarray.ArrayPolicy.ConnectionLimitPolicy.Save() }
+	catch { throw $_.Exception.Message }
+	write-host "Saving..."
+	WaitForSync
 }
 
 function Save-TMGWebListener {
