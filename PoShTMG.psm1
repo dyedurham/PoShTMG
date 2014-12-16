@@ -601,7 +601,7 @@ param
 	if (-not($ConnLimit)) {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
-		$global:ConnLimit = $ConnLimit
+		$global:ConnLimit = $tmgarray.ArrayPolicy.ConnectionLimitPolicy
 	}
 
 	if ($Enabled -ge 0) {
