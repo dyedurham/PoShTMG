@@ -647,6 +647,7 @@ param
 }
 
 function  Save-TMGFloodMitigationConfiguration {
+	if (-not($ConnLimit)) {throw "Nothing to save"}
 	try { $ConnLimit.Save() }
 	catch { throw $_.Exception.Message }
 	write-host "Saving..."
