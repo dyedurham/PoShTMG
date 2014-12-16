@@ -22,6 +22,15 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#RedirectHTTPAsHTTPS
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum RedirectHTTPAsHTTPS {
+		Disabled  = 0,
+		IfAuthenticated  = 1,
+		Always  = 2
+	}
+"@
+
 
 
 
@@ -418,14 +427,17 @@ function New-TMGWebListener {
 		[parameter(Mandatory=$true)] [string]$Name,
 		[string]$ListeningIP,
 		[string]$CustomFormsDirectory,
-		$RedirectHTTPAsHTTPS = 2,
+		$RedirectHTTPAsHTTPS = [RedirectHTTPAsHTTPS]::Always,
 		$SSLPort,
 		$HTTPPort = 80,
 		[int]$MaxConnections,
 		[bool]$SSOEnabled = 0,
 		[bool]$HTMLAuthentication,
 		[string]$SSODomainNames,
-		[string]$CertThumbprint
+		[string]$CertThumbprint,
+		[int]$ConnectionTimeout = $([int]::MinValue)
+		[int]UnlimitedNumberOfConnections = $([int]::MinValue)
+		
 	)
 
 	if (-not($WebListener)) {
@@ -461,6 +473,14 @@ function New-TMGWebListener {
 	if ($CertThumbprint) {
 		$certhash = (gci cert:\LocalMachine\my\$CertThumbprint).getcerthash()
 		$newrule.Properties.AppliedSSLCertificates.Add($certhash,"")
+	}
+	
+	if ($UnlimitedNumberOfConnections -ge 0) {
+		$newrule.Properties.UnlimitedNumberOfConnections = $UnlimitedNumberOfConnections
+	}
+	
+	if ($ConnectionTimeout -ge 0) {
+		$newrule.Properties.ConnectionTimeout = $ConnectionTimeout
 	}
 
 	Write-Host "`nWhen you're finished, run Save-TMGWebListener to save your changes`n"
