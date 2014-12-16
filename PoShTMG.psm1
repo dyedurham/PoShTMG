@@ -446,7 +446,7 @@ function New-TMGWebListener {
 		[parameter(Mandatory=$true)] [string]$Name,
 		[string]$ListeningIP,
 		[string]$CustomFormsDirectory,
-		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$RedirectHTTPAsHTTPS,
+		[ValidateSet("Disabled","IfAuthenticated","Always",)][string]$RedirectHTTPAsHTTPS,
 		$SSLPort,
 		$HTTPPort = 80,
 		[int]$MaxConnections,
