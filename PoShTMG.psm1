@@ -67,7 +67,7 @@ function New-TMGWebPublishingRule {
 		[parameter(Mandatory=$true)] [string]$ServerHostName,
 		[parameter(Mandatory=$true)] [string]$ServerIP,
 		[parameter(Mandatory=$true)] [string]$WebListener,
-		[parameter(Mandatory=$true)] [array]$PublicNames,
+		[parameter(Mandatory=$true)] [string]$PublicNames,
 		[string]$DeniedRuleRedirectURL,
 		[string]$LogoffURL,
 		[string]$SourceNetwork,
@@ -81,12 +81,15 @@ function New-TMGWebPublishingRule {
 		[bool]$SameAsInternalPath,
 		[bool]$Action = 0,
 		[bool]$TranslateLinks = 0,
+		[bool]$Enabled,
 		[int]$ServerAuthentication = 4,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
-		[switch]$ForwardOriginalHostHeader
+		[int]$ServerType,
+		[switch]$ForwardOriginalHostHeader,
+		[switch]$StripDomainFromCredentials
 	)
-
+	
 	if (-not($PolicyRules)) {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
@@ -102,6 +105,17 @@ function New-TMGWebPublishingRule {
 	$newrule.Action = $Action
 	$newrule.WebPublishingProperties.WebSite = $ServerHostName
 	$newrule.WebPublishingProperties.PublishedServer = $ServerIP
+	$newrule.WebPublishingProperties.LogoffURL = $LogoffURL
+	$newrule.WebPublishingProperties.SetWebListener($WebListener)
+	$newrule.WebPublishingProperties.TranslateLinks = 0
+	$newrule.WebPublishingProperties.CredentialsDelegationType = $ServerAuthentication
+	$newrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL
+	$newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort
+	$newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort
+	$newrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials
+	$newrule.WebPublishingProperties.Enabled = $Enabled
+	$newrule.WebPublishingProperties.PublishedServerType = $ServerType
+	
 	## APPLY ACCESS POLICY IF SPECIFIED
 	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
 	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
@@ -111,15 +125,8 @@ function New-TMGWebPublishingRule {
 	if ($ExcludeComputerSet) {$newrule.SourceSelectionIPs.ComputerSets.Add("$ExcludeComputerSet",1)}
 	if ($SourceComputer) {$newrule.SourceSelectionIPs.Computers.Add("$SourceComputer",0)}
 	if ($ExcludeComputer) {$newrule.SourceSelectionIPs.Computers.Add("$ExcludeComputer",1)}
-	$newrule.WebPublishingProperties.LogoffURL = $LogoffURL
-	$newrule.WebPublishingProperties.SetWebListener($WebListener)
-	$newrule.WebPublishingProperties.TranslateLinks = 0
-	$newrule.WebPublishingProperties.CredentialsDelegationType = $ServerAuthentication
-	$newrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL
-	$newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort
-	$newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort
 	
-	
+	[array]$PublicNames = $PublicNames -split ","
 	foreach ($pnm in $PublicNames) {
 	$newrule.WebPublishingProperties.PublicNames.Add($pnm)
 	}
