@@ -452,8 +452,8 @@ function New-TMGWebListener {
 		[bool]$HTMLAuthentication,
 		[string]$SSODomainNames,
 		[string]$CertThumbprint,
-		[int]$ConnectionTimeout = $([int]::MinValue)
-		[int]UnlimitedNumberOfConnections = $([int]::MinValue)
+		[int]$ConnectionTimeout = $([int]::MinValue),
+		[int]$UnlimitedNumberOfConnections = $([int]::MinValue)
 		
 	)
 
