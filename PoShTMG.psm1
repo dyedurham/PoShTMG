@@ -68,6 +68,7 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#FpcProtocolSelectionType
 Add-Type -TypeDefinition @"
 	[System.Flags] public enum ProtocolSelectionType {
 		All  = 0,
@@ -85,8 +86,8 @@ Add-Type -TypeDefinition @"
 	[System.Flags] public enum ConnectionDirection {
 		In  = 0,
 		Out  = 1,
-		ReceiveOnly = 0,
-		SendOnly = 1,
+		Receive = 0,
+		Send = 1,
 		ReceiveSend = 2,
 		SendReceive = 3
 	}
@@ -693,23 +694,33 @@ function Add-TMGProtocolPort {
 	Adds a TMG User-Defined Protocol port parameter to the protocol with the specified name.
 	.DESCRIPTION
 	Uses COM to add a port to the the TMG protocol on the array that this TMG server is a member of, with the specified name.
+	.PARAMETER Connection
+	Primary | Secondary
+	Places the protocol in the Primary or Secondary Connections box. A primary protocol must be defined before a secondary protocol can.
+	.PARAMETER IPType
+	ICMP | TCP | UDP | IPLevel
+	.PARAMETER Direction
+	If IPType is set to TCP - The options available are In | Out.
+	If IPType is set to ICMP or IPLevel - The options available are Send | SendReceive.
+	If IPType is set to UDP - The options available are Receive | Send | ReceiveSend | SendReceive.
 	.EXAMPLE
-	Add-TMGProtocolPort -Name MySpecialProtocol -LowPort 110 -HighPort 120 -Direction In -TCP
-	Add-TMGProtocolPort -Name MyRawProtocol -Direction In -Raw
+	Add-TMGProtocolPort -Name MySpecialProtocol -Connection Primary -Direction In -IPType TCP -LowPort 110 -HighPort 120
+	.EXAMPLE
+	Add-TMGProtocolPort -Name MyRawProtocol -Connection Primary -Direction ReceiveSend -IPType IPLevel -IPLevelConnectionProtocol GGP
+	.EXAMPLE
+	Add-TMGProtocolPort -Name MyICMPProtocol -Connection Primary -Direction In -IPType ICMP -ICMPCode 0 -ICMPType 8
 #>
 	Param(
 		[parameter(Mandatory=$true)][string]$Name,
-		[parameter(Mandatory=$true)][ValidateSet("In","Out","ReceiveOnly","SendOnly","ReceiveSend","SendReceive")][string]$Direction,
+		[parameter(Mandatory=$true)][ValidateSet("In","Out","Receive","Send","ReceiveSend","SendReceive")][string]$Direction,
 		[parameter(Mandatory=$true)][ValidateSet("Primary","Secondary")][string]$Connection,
-		[parameter(Mandatory=$true)][ValidateSet("ICMP","TCP","UDP","Raw")][string]$IPType,
-		[ValidateSet("ICMP","IGMP","GGP","IP","ST","TCP","UDP","ICMPv6")][string]$RawConnectionProtocol,
+		[parameter(Mandatory=$true)][ValidateSet("ICMP","TCP","UDP","IPLevel")][string]$IPType,
+		[ValidateSet("ICMP","IGMP","GGP","IP","ST","TCP","UDP","ICMPv6")][string]$IPLevelConnectionProtocol,
 		[int]$LowPort,
 		[int]$HighPort,
 		[int]$ICMPCode,
-		[int]$ICMPType,
+		[int]$ICMPType
 	)
-
-	if (($TCP -eq $false) -and ($UDP -eq $false) -and ($ICMP -eq $false) -and ($RAW -eq $false)) {throw "You must specify an IP protocol"}
 
 	if (-not($Protocol)) {
 		$fpcroot = New-Object -ComObject fpc.root
@@ -726,7 +737,7 @@ function Add-TMGProtocolPort {
 		TCP { $npcmd.AddTCP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
 		UDP { $npcmd.AddUDP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
 		ICMP { $npcmd.AddICMP(([int][ConnectionDirection]::$Direction),$ICMPCode,$ICMPType) }
-		Raw { $npcmd.AddRAW(([int][ConnectionDirection]::$Direction),([int][ConnectionProtocolType]::$RawConnectionProtocol)) }
+		IPLevel { $npcmd.AddRAW(([int][ConnectionDirection]::$Direction),([int][ConnectionProtocolType]::$IPLevelConnectionProtocol)) }
 	}
 	
 	Write-Host "`nWhen you're finished, run Save-TMGProtocols to save your changes`n"
@@ -769,6 +780,16 @@ param
 }
 
 function New-TMGWebListener {
+<#
+	.SYNOPSIS
+	Gets the TMG Web Listeners whose names match the specified Filter.
+	.DESCRIPTION
+	Uses COM to get the TMG Web Listeners from the Array that this TMG server is a member of, which match the specified Filter.
+	.EXAMPLE
+	Get-TMGWebListeners -Filter "Test *"
+	.PARAMETER Filter
+	The string you want to filter on. Leave blank or don't specify for no filtering.
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
 		[parameter(Mandatory=$true)][ValidateSet("NoAuth","HTTP","HTMLForm")] [string]$ClientAuthentication,
