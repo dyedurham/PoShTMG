@@ -115,6 +115,15 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#FpcIpSelectionMethods
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum IPSelectionMethod {
+		All  = 0,
+		Default  = 1,
+		Specified  = 2
+	}
+"@
+
 ########	CONSTANTS
 
 #LINK TRANSLATION MAPPING GUID
@@ -164,7 +173,7 @@ function New-TMGWebPublishingRule {
 	.SYNOPSIS
 	Creates a new TMG Web Publishing Rule.
 	.DESCRIPTION
-	Uses COM to create the TMG Web Publishing Rule on the array that this TMG server is a member of.
+	Uses COM to create the specified TMG Web Publishing Rule on the array that this TMG server is a member of.
 
 	Parameter names match the option name in the GUI Web Publishing Rule Properties dialog where possible, others have been added to parameter help.
 	Run Get-Help New-TMGWebPublishingRule -Full
@@ -413,7 +422,7 @@ function New-TMGAccessRule {
 	.SYNOPSIS
 	Creates a new TMG Access Rule.
 	.DESCRIPTION
-	Uses COM to create the TMG Access Rule on the array that this TMG server is a member of.
+	Uses COM to create the specified TMG Access Rule on the array that this TMG server is a member of.
 
 	Parameter names match the option name in the GUI Access Rule Properties dialog where possible, others have been added to parameter help.
 	Run Get-Help New-TMGAccessRule -Full
@@ -544,7 +553,7 @@ function New-TMGComputerSet {
 	.SYNOPSIS
 	Adds a TMG Computer Set with the specified name.
 	.DESCRIPTION
-	Uses COM to create the TMG Computer Set on the array that this TMG server is a member of, with the specified name.
+	Uses COM to create the specified TMG Computer Set on the array that this TMG server is a member of.
 	.EXAMPLE
 	New-TMGComputerSet -Name MySet
 #>
@@ -568,7 +577,7 @@ function Add-TMGComputerToSet {
 	.SYNOPSIS
 	Adds an entry to the TMG Computer Set with the specified name.
 	.DESCRIPTION
-	Uses COM to add a name/address pair to the TMG Computer Set on the array that this TMG server is a member of with the specified name.
+	Uses COM to add a name/address pair to the specified TMG Computer Set on the array that this TMG server is a member of.
 	.EXAMPLE
 	Add-TMGComputerToSet -SetName MySet -ClientName MYSERVER -ComputerIP 192.168.1.1
 	.PARAMETER ClientName
@@ -693,7 +702,7 @@ function Add-TMGProtocolPort {
 	.SYNOPSIS
 	Adds a TMG User-Defined Protocol port parameter to the protocol with the specified name.
 	.DESCRIPTION
-	Uses COM to add a port to the the TMG protocol on the array that this TMG server is a member of, with the specified name.
+	Uses COM to add a port to the specified TMG protocol on the array that this TMG server is a member of.
 	.PARAMETER Connection
 	Primary | Secondary
 	Places the protocol in the Primary or Secondary Connections box. A primary protocol must be defined before a secondary protocol can.
@@ -701,8 +710,10 @@ function Add-TMGProtocolPort {
 	ICMP | TCP | UDP | IPLevel
 	.PARAMETER Direction
 	If IPType is set to TCP - The options available are In | Out.
-	If IPType is set to ICMP or IPLevel - The options available are Send | SendReceive.
 	If IPType is set to UDP - The options available are Receive | Send | ReceiveSend | SendReceive.
+	If IPType is set to ICMP or IPLevel - The options available are Send | SendReceive.
+	.PARAMETER IPLevelConnectionProtocol
+	ICMP | IGMP | GGP | IP | ST | TCP | UDP | ICMPv6
 	.EXAMPLE
 	Add-TMGProtocolPort -Name MySpecialProtocol -Connection Primary -Direction In -IPType TCP -LowPort 110 -HighPort 120
 	.EXAMPLE
@@ -782,18 +793,41 @@ param
 function New-TMGWebListener {
 <#
 	.SYNOPSIS
-	Gets the TMG Web Listeners whose names match the specified Filter.
+	Creates a TMG Web Listener with the specified name.
 	.DESCRIPTION
-	Uses COM to get the TMG Web Listeners from the Array that this TMG server is a member of, which match the specified Filter.
+	Uses COM to create the specified TMG Web Listener on the array that this TMG server is a member of.
 	.EXAMPLE
-	Get-TMGWebListeners -Filter "Test *"
-	.PARAMETER Filter
-	The string you want to filter on. Leave blank or don't specify for no filtering.
+	New-TMGWebListener -Name MyWL -ClientAuthentication NoAuth -ListeningIP 1.2.2.1 -HTTPPort 81 
+	.PARAMETER ClientAuthentication
+	Client Authentication Method.
+	NoAuth | IfAuthenticated | Always
+	.PARAMETER RedirectHTTPAsHTTPS
+	Disabled | IfAuthenticated | Always
+	.PARAMETER HTTPPort
+	Client connections port number.
+	If set connections are enabled on the port number.
+	Set to 0 to disable.
+	.PARAMETER SSLPort
+	Client connections port number.
+	If set connections are enabled on the port number.
+	Set to 0 to disable.
+	.PARAMETER SourceNetworkName
+	Specify the name of the network object to listen on. If not specified, the new listener will bind to the External network and listen on all IPs.
+	.PARAMETER ListeningForRequests
+	Sets the listener IP address binding type.
+	All | Default | Specified
+	All - the listener will bind to all IPs on the SourceNetworkName network.
+	Default - the default IP - eg. if load balancing is configured the VIP will be chosen.
+	Specified - the listener binds to the address specified by ListeningIP.
+	.PARAMETER ListeningIP
+	Binds the listener to a specified IP. This must be used with the SourceNetworkName set and ListeningForRequests set to Specified.
 #>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
 		[parameter(Mandatory=$true)][ValidateSet("NoAuth","HTTP","HTMLForm")] [string]$ClientAuthentication,
 		[ValidateSet("Disabled","IfAuthenticated","Always")][string]$RedirectHTTPAsHTTPS,
+		[ValidateSet("All","Default","Specified")][string]$ListeningForRequests,
+		[string]$SourceNetworkName,
 		[string]$ListeningIP,
 		[string]$CustomFormsDirectory,
 		[string]$SSODomainNames,
@@ -840,13 +874,13 @@ function New-TMGWebListener {
 			$newlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
 		}
 	}
-	
-	if ($ListeningIP) {
-		$newlistener.IPsOnNetworks.Add("EXTERNAL",2,$ListeningIP)
-		} else {
-		$newlistener.IPsOnNetworks.Add("EXTERNAL",0,"")
-	}
 
+	if (-not($SourceNetworkName)) {
+		$newlistener.IPsOnNetworks.Add("External",0,"")
+		} else {
+		$newlistener.IPsOnNetworks.Add($SourceNetworkName,[int][IPSelectionMethod]::$ListeningForRequests,$ListeningIP)
+	}
+	
 	if ($CertThumbprint) {
 		$certhash = (gci cert:\LocalMachine\my\$CertThumbprint).getcerthash()
 		$newlistener.Properties.AppliedSSLCertificates.Add($certhash,"")
