@@ -265,9 +265,10 @@ function New-TMGWebPublishingRule {
 		[string]$ExcludeComputers,
 		[string]$InternalPathMapping,
 		[string]$ExternalPathMapping,
+		[bool]$SameAsInternalPath,
+		[hashtable]$PathMappings,
 		[string]$LinkTranslationReplace,
 		[string]$LinkTranslationReplaceWith,
-		[bool]$SameAsInternalPath,
 		[bool]$TranslateLinks = 0,
 		[bool]$Enabled = $true,
 		[int]$SSLRedirectPort,
@@ -351,6 +352,13 @@ function New-TMGWebPublishingRule {
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
 	if ($InternalPathMapping) {$newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping)}
 
+	if ($PathMappings) {
+		ForEach ($PathMapping in $PathMappings.GetEnumerator()) {
+			if ($PathMapping.Name -eq $PathMapping.Valu)e { $PathMappingsSame = $true }  else { $PathMappingsSame = $false }
+			$newrule.WebPublishingProperties.PathMappings.Add($PathMapping.Name,$PathMappingsSame,$PathMapping.Value)
+		}
+	}
+	
 	return $newrule
 }
 
