@@ -360,7 +360,7 @@ param
 	}
 	
 	ForEach ($rule in $rules) {
-		if ($rule.Name -Like $name -And $rule.Type -eq [PolicyRuleTypes]::Access) {
+		if ($rule.Name -Like $Filter -And $rule.Type -eq [PolicyRuleTypes]::Access) {
 			$result += $rule
 		}
 	}
@@ -491,7 +491,7 @@ param
 	}
 	
 	ForEach ($computerset in $computersets) {
-		if ($computerset.Name -Like $name) {
+		if ($computerset.Name -Like $Filter) {
 			$result += $computerset
 		}
 	}
@@ -616,7 +616,7 @@ param
 	}
 	
 	ForEach ($protocol in $protocols) {
-		if ($protocol.Name -Like $name) {
+		if ($protocol.Name -Like $Filter) {
 			$result += $protocol
 		}
 	}
@@ -709,7 +709,7 @@ param
 	}
 	
 	ForEach ($weblistener in $weblisteners) {
-		if ($weblistener.Name -Like $name) {
+		if ($weblistener.Name -Like $Filter) {
 			$result += $weblistener
 		}
 	}
