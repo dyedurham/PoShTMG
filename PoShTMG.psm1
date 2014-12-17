@@ -224,7 +224,7 @@ function New-TMGWebPublishingRule {
 	if ($SSLRedirectPort) { $newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort }
 	if ($HTTPRedirectPort) { $newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
 	$newrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials
-	$newrule.WebPublishingProperties.Enabled = $Enabled
+	$newrule.Enabled = $Enabled
 	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
 	
 	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
