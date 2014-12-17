@@ -243,6 +243,10 @@ function New-TMGWebPublishingRule {
 	Default is Included.
 	.EXAMPLE
 	New-TMGWebPublishingRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1 -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
+	.EXAMPLE
+	New-TMGWebPublishingRule -Name Test -Action Deny -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
+	.EXAMPLE
+	New-TMGWebPublishingRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1  -WebListener MyWL -ForwardOriginalHostHeader -UserSet MyUserList -IncludeStatus Include
 #>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
