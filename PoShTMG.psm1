@@ -182,6 +182,8 @@ function New-TMGWebPublishingRule {
 	Creates a new TMG Web Publishing Rule.
 	.DESCRIPTION
 	Uses COM to create the specified TMG Web Publishing Rule on the array that this TMG server is a member of.
+	
+	New-TMGWebPublishingRule can be executed consecutively to create new rules. Save-TMGRules must then be executed to save the changes.
 
 	Parameter names match the option name in the GUI Web Publishing Rule Properties dialog where possible, others have been added to parameter help.
 	Run Get-Help New-TMGWebPublishingRule -Full
@@ -349,7 +351,7 @@ function New-TMGWebPublishingRule {
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
 	if ($InternalPathMapping) {$newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping)}
 
-	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
+	return $newrule
 }
 
 function Move-TMGRule {
@@ -448,6 +450,8 @@ function New-TMGAccessRule {
 	Creates a new TMG Access Rule.
 	.DESCRIPTION
 	Uses COM to create the specified TMG Access Rule on the array that this TMG server is a member of.
+	
+	New-TMGAccessRule can be executed consecutively to create new rules. Save-TMGRules must then be executed to save the changes.
 
 	Parameter names match the option name in the GUI Access Rule Properties dialog where possible, others have been added to parameter help.
 	Run Get-Help New-TMGAccessRule -Full
@@ -534,7 +538,7 @@ function New-TMGAccessRule {
 				$newrule.SourceSelectionIPs.Computers.Add("$exc",1) }
 	}
 
-	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
+	return $newrule
 }
 
 function Get-TMGComputerSets {
@@ -579,6 +583,8 @@ function New-TMGComputerSet {
 	Adds a TMG Computer Set with the specified name.
 	.DESCRIPTION
 	Uses COM to create the specified TMG Computer Set on the array that this TMG server is a member of.
+	
+	New-TMGComputerSet can be executed consecutively to create new sets. Save-TMGComputerSet must then be executed to save the changes.
 	.EXAMPLE
 	New-TMGComputerSet -Name MySet
 #>
@@ -594,7 +600,7 @@ function New-TMGComputerSet {
 
 	$newcs = $ComputerSet.Add($Name)
 
-	Write-Host "`nWhen you're finished, run Save-TMGComputerSet to save your changes`n"
+	return $newcs
 }
 
 function Add-TMGComputerToSet {
@@ -603,6 +609,8 @@ function Add-TMGComputerToSet {
 	Adds an entry to the TMG Computer Set with the specified name.
 	.DESCRIPTION
 	Uses COM to add a name/address pair to the specified TMG Computer Set on the array that this TMG server is a member of.
+	
+	Add-TMGComputerToSet can be executed consecutively add new entries. Save-TMGComputerSet must then be executed to save the changes.
 	.EXAMPLE
 	Add-TMGComputerToSet -SetName MySet -ClientName MYSERVER -ComputerIP 192.168.1.1
 	.PARAMETER ClientName
@@ -625,7 +633,7 @@ function Add-TMGComputerToSet {
 	$newcmp = $ComputerSet.item($SetName)
 	$newcmp.Computers.Add($ClientName,$ComputerIP)
 
-	Write-Host "`nWhen you're finished, run Save-TMGComputerSet to save your changes`n"
+	return $newcmp
 }
 
 function New-TMGStaticRoute {
@@ -636,6 +644,8 @@ function New-TMGStaticRoute {
 	Uses COM to add a route to the TMG Network Topology Routes list on the array that this TMG server is a member of.
 	
 	Accepts dot-decimal notation only for all address parameters.
+	
+	New-TMGStaticRoute can be executed consecutively to create new routes. Save-TMGStaticRoute must then be executed to save the changes.
 	.EXAMPLE
 	New-TMGStaticRoute -Destination 192.168.5.128 -Mask 255.255.255.128 -Gateway 192.168.1.254 -Metric 16
 	.PARAMETER Destination
@@ -659,7 +669,7 @@ function New-TMGStaticRoute {
 	$newstrt = $StRoute.Add($Destination,$Mask,"",$Gateway)
 	$newstrt.Metric = $Metric
 
-	Write-Host "`nWhen you're finished, run Save-TMGStaticRoute to save your changes`n"
+	return $newstrt
 }
 
 function Get-TMGProtocolDefinitions {
@@ -704,6 +714,8 @@ function New-TMGProtocolDefinition {
 	Adds a TMG User-Defined Protocol object with the specified name.
 	.DESCRIPTION
 	Uses COM to create the TMG Protocol on the array that this TMG server is a member of, with the specified name.
+	
+	New-TMGProtocolDefinition can be executed consecutively to create new objects. Save-TMGProtocols must then be executed to save the changes.
 	.EXAMPLE
 	New-TMGProtocolDefinition -Name MySpecialProtocol
 #>
@@ -719,15 +731,17 @@ function New-TMGProtocolDefinition {
 
 	$newprot = $Protocol.Add($Name)
 
-	Write-Host "`nWhen you're finished, run Save-TMGProtocols to save your changes`n"
+	return $newprot
 }
 
 function Add-TMGProtocolPort {
 <#
 	.SYNOPSIS
-	Adds a TMG User-Defined Protocol port parameter to the protocol with the specified name.
+	Adds a TMG User-Defined Protocol port entry to the protocol with the specified name.
 	.DESCRIPTION
 	Uses COM to add a port to the specified TMG protocol on the array that this TMG server is a member of.
+	
+	Add-TMGProtocolPort can be executed consecutively to create new entries. Save-TMGProtocols must then be executed to save the changes.
 	.PARAMETER Connection
 	Primary | Secondary
 	Places the protocol in the Primary or Secondary Connections box. A primary protocol must be defined before a secondary protocol can.
@@ -776,7 +790,7 @@ function Add-TMGProtocolPort {
 		IPLevel { $npcmd.AddRAW(([int][ConnectionDirection]::$Direction),([int][ConnectionProtocolType]::$IPLevelConnectionProtocol)) }
 	}
 	
-	Write-Host "`nWhen you're finished, run Save-TMGProtocols to save your changes`n"
+	return $newprot
 }
 
 function Get-TMGWebListeners {
@@ -821,6 +835,8 @@ function New-TMGWebListener {
 	Creates a TMG Web Listener with the specified name.
 	.DESCRIPTION
 	Uses COM to create the specified TMG Web Listener on the array that this TMG server is a member of.
+	
+	New-TMGWebListener can be executed consecutively to create new rules. Save-TMGWebListener must then be executed to save the changes.
 	.EXAMPLE
 	New-TMGWebListener -Name MyWL -ClientAuthentication NoAuth -ListeningIP 1.2.2.1 -HTTPPort 81 
 	.PARAMETER ClientAuthentication
@@ -919,7 +935,7 @@ function New-TMGWebListener {
 		$newlistener.Properties.ConnectionTimeout = $ConnectionTimeout
 	}
 
-	$newlistener.Save()
+	return $newlistener
 }
 
 function Add-TMGIPRangeToNetwork {
@@ -928,6 +944,8 @@ function Add-TMGIPRangeToNetwork {
 	Adds an IP range to the specified TMG Network object.
 	.DESCRIPTION
 	Uses COM to add an IP range to a TMG Network on the array that this TMG server is a member of.
+	
+	Add-TMGIPRangeToNetwork can be executed consecutively to create new entries. Save-TMGNetworkConfiguration must then be executed to save the changes.
 	.EXAMPLE
 	Add-TMGIPRangeToNetwork -NetworkName Internal -LowIP 192.168.6.12 -HighIP 192.168.6.80
 	.EXAMPLE
@@ -948,7 +966,7 @@ function Add-TMGIPRangeToNetwork {
 	$newrange = $NetworkConf.Item($NetworkName)
 	$newrange.IPRangeSet.Add($LowIP,$HighIP)
 
-	Write-Host "`nWhen you're finished, run Save-TMGNetworkConfiguration to save your changes`n"
+	return $newrange
 }
 
 function Add-TMGAdapterRangeToNetwork {
@@ -959,6 +977,8 @@ function Add-TMGAdapterRangeToNetwork {
 	Uses COM to gather network data from the specified ethernet adapter then add it's IP range to a TMG Network on the array that this TMG server is a member of.
 	
 	Available adapter names can be gathered via the GUI - Networking > Network Adapters.
+	
+	Add-TMGAdapterRangeToNetwork can be executed consecutively to create new entries. Save-TMGNetworkConfiguration must then be executed to save the changes.
 	.EXAMPLE
 	Add-TMGAdapterRangeToNetwork -NetworkName Internal -AdapterName Ethernet
 	.EXAMPLE
@@ -987,7 +1007,7 @@ function Add-TMGAdapterRangeToNetwork {
 	$newrange.IPRangeSet.Add(($elem | foreach {$_.IP_From}),($elem | foreach {$_.IP_To}))
 	}
 
-	Write-Host "`nWhen you're finished, run Save-TMGNetworkConfiguration to save your changes`n"
+	return $newrange
 }
 
 function Set-TMGFloodMitigation {
