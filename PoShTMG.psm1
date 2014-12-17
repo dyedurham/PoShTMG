@@ -349,8 +349,18 @@ function New-TMGWebPublishingRule {
 				$newrule.WebPublishingProperties.PublicNames.Add($pnm) }
 	}
 	
+	try {
+	$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
+	} catch {
+	$newrule.VendorParametersSets.Add($LinkTransGUID)
+	}
+	
 	if ($LinkTranslationReplace) {
-		$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
+		try {
+			$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
+		} catch {
+			$nlt = $newrule.VendorParametersSets.Add($LinkTransGUID)
+		}
 		$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
 	}
 	
