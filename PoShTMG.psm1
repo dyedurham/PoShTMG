@@ -76,6 +76,14 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#FpcConnectionDirectionType
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum ConnectionDirection {
+		In  = 0,
+		Out  = 1
+	}
+"@
+
 ########	CONSTANTS
 
 #LINK TRANSLATION MAPPING GUID
@@ -384,7 +392,7 @@ function New-TMGAccessRule {
 	.PARAMETER ExcludeComputer
 	A comma separated list of computer objects to add to the Exceptions box on the From tab.
 	.EXAMPLE
-	New-TMGAccessRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1 -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
+	New-TMGAccessRule -Name Test -Action Allow -ProtocolSelectionMethod AllExceptSelected -ProtocolNames HTTP -ExcludeNetwork MyEnemies
 #>
 	Param(
 		[parameter(Mandatory=$true)][string]$Name,
@@ -416,8 +424,7 @@ function New-TMGAccessRule {
 	
 	if ($ProtocolNames) {
 		foreach ($prt in ([array]$ProtocolNames -split ",")) {
-				$newrule.AccessProperties.SpecifiedProtocols.Add("$prt",0)
-		}
+				$newrule.AccessProperties.SpecifiedProtocols.Add("$prt",0) }
 	}
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
@@ -493,6 +500,14 @@ param
 }
 
 function New-TMGComputerSet {
+<#
+	.SYNOPSIS
+	Adds a TMG Computer Set with the specified name.
+	.DESCRIPTION
+	Uses COM to create the TMG Computer Set on the array that this TMG server is a member of, with the specified name.
+	.EXAMPLE
+	New-TMGComputerSet -Name MySet
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name
 	)
@@ -509,6 +524,18 @@ function New-TMGComputerSet {
 }
 
 function Add-TMGComputerToSet {
+<#
+	.SYNOPSIS
+	Adds an entry to the TMG Computer Set with the specified name.
+	.DESCRIPTION
+	Uses COM to add a name/address pair to the TMG Computer Set on the array that this TMG server is a member of with the specified name.
+	.EXAMPLE
+	Add-TMGComputerToSet -SetName MySet -ClientName MYSERVER -ComputerIP 192.168.1.1
+	.PARAMETER ClientName
+	Matches the Name field in the list of entries under a computer set.
+	.PARAMETER ComputerIP
+	Matches the IP Address field in the list of entries under a computer set.
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$SetName,
 		[parameter(Mandatory=$true)] [string]$ClientName,
@@ -528,6 +555,20 @@ function Add-TMGComputerToSet {
 }
 
 function New-TMGStaticRoute {
+<#
+	.SYNOPSIS
+	Adds an entry to the TMG Network Topology Routes list.
+	.DESCRIPTION
+	Uses COM to add a route to the TMG Network Topology Routes list on the array that this TMG server is a member of.
+	
+	Accepts dot-decimal notation only for all address parameters.
+	.EXAMPLE
+	New-TMGStaticRoute -Destination 192.168.5.128 -Mask 255.255.255.128 -Gateway 192.168.1.254 -Metric 16
+	.PARAMETER Destination
+	The network address of the destination network.
+	.PARAMETER Mask
+	The netmask of the destination.
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Destination,
 		[parameter(Mandatory=$true)] [string]$Mask,
@@ -584,6 +625,14 @@ param
 }
 
 function New-TMGProtocolDefinition {
+<#
+	.SYNOPSIS
+	Adds a TMG User-Defined Protocol object with the specified name.
+	.DESCRIPTION
+	Uses COM to create the TMG Protocol on the array that this TMG server is a member of, with the specified name.
+	.EXAMPLE
+	New-TMGProtocolDefinition -Name MySpecialProtocol
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name
 	)
@@ -600,11 +649,19 @@ function New-TMGProtocolDefinition {
 }
 
 function Add-TMGProtocolPort {
-	Param( 
+<#
+	.SYNOPSIS
+	Adds a TMG User-Defined Protocol port parameter to the protocol with the specified name.
+	.DESCRIPTION
+	Uses COM to add a port to the the TMG protocol on the array that this TMG server is a member of, with the specified name.
+	.EXAMPLE
+	Add-TMGProtocolPort -Name MySpecialProtocol -LowPort 110 -HighPort 120 -Direction In -TCP
+#>
+	Param(
 		[parameter(Mandatory=$true)] [string]$Name,
 		[parameter(Mandatory=$true)] [int]$LowPort,
 		[parameter(Mandatory=$true)] [int]$HighPort,
-		[parameter(Mandatory=$true)] [int]$Direction,
+		[parameter(Mandatory=$true)][ValidateSet("In","Out")][string]$Direction,
 		[switch]$TCP,
 		[switch]$UDP
 	)
@@ -618,8 +675,8 @@ function Add-TMGProtocolPort {
 	}
 
 	$newprot = $Protocol.Item($Name)
-	if ($TCP) { $newprot.PrimaryConnections.AddTCP($Direction,$LowPort,$HighPort) }
-	if ($UDP) { $newprot.PrimaryConnections.AddUDP($Direction,$LowPort,$HighPort) }
+	if ($TCP) { $newprot.PrimaryConnections.AddTCP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
+	if ($UDP) { $newprot.PrimaryConnections.AddUDP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
 
 	Write-Host "`nWhen you're finished, run Save-TMGProtocols to save your changes`n"
 }
