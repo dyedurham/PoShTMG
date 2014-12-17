@@ -76,11 +76,19 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
-#FpcConnectionDirectionType
+#FpcUDPConnectionDirectionType
+# fpcReceiveOnly = 0
+# fpcSendOnly = 1
+# fpcReceiveSend = 2
+# fpcSendReceive = 3
 Add-Type -TypeDefinition @"
 	[System.Flags] public enum ConnectionDirection {
 		In  = 0,
-		Out  = 1
+		Out  = 1,
+		ReceiveOnly = 0,
+		SendOnly = 1,
+		ReceiveSend = 2,
+		SendReceive = 3
 	}
 "@
 
@@ -613,25 +621,36 @@ function Add-TMGProtocolPort {
 	Add-TMGProtocolPort -Name MySpecialProtocol -LowPort 110 -HighPort 120 -Direction In -TCP
 #>
 	Param(
-		[parameter(Mandatory=$true)] [string]$Name,
-		[parameter(Mandatory=$true)] [int]$LowPort,
-		[parameter(Mandatory=$true)] [int]$HighPort,
-		[parameter(Mandatory=$true)][ValidateSet("In","Out")][string]$Direction,
+		[parameter(Mandatory=$true)][string]$Name,
+		[parameter(Mandatory=$true)][int]$LowPort,
+		[parameter(Mandatory=$true)][int]$HighPort,
+		[parameter(Mandatory=$true)][ValidateSet("In","Out","ReceiveOnly","SendOnly","ReceiveSend","SendReceive")][string]$Direction,
+		[parameter(Mandatory=$true)][ValidateSet("Primary","Secondary")][string]$Connection,
+		[int]$ICMPCode,
+		[int]$ICMPType,
 		[switch]$TCP,
+		[switch]$ICMP,
+		[switch]$RAW,
 		[switch]$UDP
 	)
 
-	if (($TCP -eq $false) -and ($UDP -eq $false)) {throw "You must specify an IP protocol"}
+	if (($TCP -eq $false) -and ($UDP -eq $false) -and ($ICMP -eq $false) -and ($RAW -eq $false)) {throw "You must specify an IP protocol"}
 
 	if (-not($Protocol)) {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
 		$global:Protocol = $tmgarray.RuleElements.ProtocolDefinitions
 	}
-
+	
 	$newprot = $Protocol.Item($Name)
-	if ($TCP) { $newprot.PrimaryConnections.AddTCP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
-	if ($UDP) { $newprot.PrimaryConnections.AddUDP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
+	
+	if ($Connection -eq "Primary") { $npcmd = $newprot.PrimaryConnections }
+	if ($Connection -eq "Secondary") { $npcmd = $newprot.SecondaryConnections }
+	
+	if ($TCP) { $npcmd.AddTCP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
+	if ($UDP) { $npcmd.AddUDP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
+	if ($ICMP) { $npcmd.AddICMP(([int][ConnectionDirection]::$Direction),$ICMPCode,$ICMPType) }
+	if ($RAW) { $npcmd.AddRAW(([int][ConnectionDirection]::$Direction),$LowPort) }
 
 	Write-Host "`nWhen you're finished, run Save-TMGProtocols to save your changes`n"
 }
