@@ -195,7 +195,7 @@ function New-TMGWebPublishingRule {
 		[string]$LinkTranslationReplaceWith,
 		[bool]$SameAsInternalPath,
 		[bool]$TranslateLinks = 0,
-		[bool]$Enable,
+		[bool]$Enabled = $true,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
 		[switch]$ForwardOriginalHostHeader,
@@ -221,10 +221,10 @@ function New-TMGWebPublishingRule {
 	$newrule.WebPublishingProperties.TranslateLinks = 0
 	$newrule.WebPublishingProperties.CredentialsDelegationType = [int][CredentialsDelegation]::($ServerAuthentication)
 	$newrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL
-	$newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort
-	$newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort
+	if ($SSLRedirectPort) { $newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort }
+	if ($HTTPRedirectPort) { $newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
 	$newrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials
-	$newrule.WebPublishingProperties.Enabled = $Enable
+	$newrule.WebPublishingProperties.Enabled = $Enabled
 	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
 	
 	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
