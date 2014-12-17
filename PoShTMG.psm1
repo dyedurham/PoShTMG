@@ -1,8 +1,13 @@
-################################################################
-###                                                          ###
-### PoShTMG Module - Nial Francis & Matt Parkes GlobalX 2014 ###
-###                                                          ###
-################################################################
+###############################################################
+###															###
+###  PoShTMG Module											###
+###															###
+###  Contains the tears of DevOps Superstars:				###
+###  Nial Francis &	Matt Parkes								###
+###															###
+###  @ GlobalX Information Pty. Ltd. Brisbane 2014			###
+###															###
+###############################################################
 
 ########	TYPE DEFINITIONS
 
@@ -40,6 +45,19 @@ Add-Type -TypeDefinition @"
 		HTTPS  = 1,
 		HTTPAndHTTPS  = 2,
 		FTP = 3
+	}
+"@
+
+#CredentialsDelegation
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum CredentialsDelegation {
+		NoneClientMay  = 0,				#fpcDelegationNonePassThrough
+		NoneClientCannot  = 1,			#fpcDelegationNoneBlock
+		RSASecurID  = 2,				#fpcDelegationSecurID 
+		Basic = 3,						#fpcDelegationBasic
+		NTLM = 4,						#fpcDelegationNTLM
+		Negotiate = 5,					#fpcDelegationSPNEGO
+		Kerberos = 6					#fpcDelegationKerberosConstrained
 	}
 "@
 
@@ -88,13 +106,71 @@ param
 }
 
 function New-TMGWebPublishingRule {
+<#
+	.SYNOPSIS
+	Creates a new TMG Web Publishing Rule.
+	.DESCRIPTION
+	Uses COM to create the TMG Web Publishing Rules on the array that this TMG server is a member of.
+
+	Parameter names match the option name in the GUI Web Publishing Rule Properties dialog where possible, others have been added to parameter help.
+	Run Get-Help New-TMGWebPublishingRule -Full
+	.PARAMETER ServerHostName
+	GUI Location: To tab / The rule applies to the published site.
+	.PARAMETER ServerIP
+	GUI Location: To tab / Computer name or IP address...
+	.PARAMETER ForwardOriginalHostHeader
+	GUI Location: To tab.
+	.PARAMETER PublicNames
+	A comma separated list of DNS and IP addresses specified on the Public Name tab.
+	.PARAMETER SourceNetwork
+	A comma separated list of network objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER SourceComputerSet
+	A comma separated list of computer set objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER SourceComputer
+	A comma separated list of computer objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER ExcludeNetwork
+	A comma separated list of network objects to add to the Exceptions box on the From tab.
+	.PARAMETER ExcludeComputerSet
+	A comma separated list of computer set objects to add to the Exceptions box on the From tab.
+	.PARAMETER ExcludeComputer
+	A comma separated list of computer objects to add to the Exceptions box on the From tab.
+	.PARAMETER DeniedRuleRedirectURL
+	GUI Location: Action tab / Redirect HTTP requests... box. Setting this also checks the check box and nullifying unchecks.
+	.PARAMETER InternalPathMapping
+	GUI Location: Paths tab - The Internal Path setting. NOTE: This item must be paired with either ExternalPathMapping or SameAsInternalPath.
+	.PARAMETER ExternalPathMapping
+	GUI Location: Paths tab - The External Path setting. Must be paired with InternalPathMapping.
+	.PARAMETER SameAsInternalPath
+	GUI Location: Paths tab - This option is a bool, paired with the Internal Path setting autofills ExternalPathMapping to match.
+	.PARAMETER LinkTranslationReplace
+	GUI Location: Link Translation tab / Configure / Replace. Must be paired with LinkTranslationReplaceWith.
+	.PARAMETER LinkTranslationReplaceWith
+	GUI Location: Link Translation tab / Configure / With. Must be paired with LinkTranslationReplace.
+	.PARAMETER TranslateLinks
+	GUI Location: Link Translation tab / Apply link translation...
+	.PARAMETER ServerAuthentication
+	GUI Location: Authentication Delegation tab / Method used...
+	.PARAMETER HTTPRedirectPort
+	GUI Location: Bridging tab.
+	.PARAMETER SSLRedirectPort
+	GUI Location: Bridging tab.
+	.EXAMPLE
+	New-TMGWebPublishingRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1 -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
 		[parameter(Mandatory=$true)][ValidateSet("Allow","Deny")][string]$Action,
 		[string]$ServerHostName,
 		[string]$ServerIP,
 		[parameter(Mandatory=$true)] [string]$WebListener,
+<<<<<<< HEAD
 		[string]$PublicNames,
+=======
+		[parameter(Mandatory=$true)] [string]$PublicNames,
+		[ValidateSet("Allow","Deny")][string]$Action,
+		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
+		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication = "NTLM",
+>>>>>>> 7bd5cbfae7aeea6144205f2867e8accd47fd38d2
 		[string]$DeniedRuleRedirectURL,
 		[string]$LogoffURL,
 		[string]$SourceNetwork,
@@ -109,9 +185,7 @@ function New-TMGWebPublishingRule {
 		[string]$LinkTranslationReplaceWith,
 		[bool]$SameAsInternalPath,
 		[bool]$TranslateLinks = 0,
-		[bool]$Enabled,
-		[int]$ServerAuthentication = 4,
-		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
+		[bool]$Enable,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
 		[switch]$ForwardOriginalHostHeader,
@@ -135,34 +209,58 @@ function New-TMGWebPublishingRule {
 	$newrule.WebPublishingProperties.LogoffURL = $LogoffURL
 	$newrule.WebPublishingProperties.SetWebListener($WebListener)
 	$newrule.WebPublishingProperties.TranslateLinks = 0
-	$newrule.WebPublishingProperties.CredentialsDelegationType = $ServerAuthentication
+	$newrule.WebPublishingProperties.CredentialsDelegationType = [int][CredentialsDelegation]::($ServerAuthentication)
 	$newrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL
 	$newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort
 	$newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort
 	$newrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials
-	$newrule.WebPublishingProperties.Enabled = $Enabled
+	$newrule.WebPublishingProperties.Enabled = $Enable
+	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
 	
 	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
 	if ($ServerType) {$newrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType}
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
-	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
 	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
-	if ($SourceNetwork) {$newrule.SourceSelectionIPs.Networks.Add("$SourceNetwork",0)}
-	if ($ExcludeNetwork) {$newrule.SourceSelectionIPs.Networks.Add("$ExcludeNetwork",1)}
-	if ($SourceComputerSet) {$newrule.SourceSelectionIPs.ComputerSets.Add("$SourceComputerSet",0)}
-	if ($ExcludeComputerSet) {$newrule.SourceSelectionIPs.ComputerSets.Add("$ExcludeComputerSet",1)}
-	if ($SourceComputer) {$newrule.SourceSelectionIPs.Computers.Add("$SourceComputer",0)}
-	if ($ExcludeComputer) {$newrule.SourceSelectionIPs.Computers.Add("$ExcludeComputer",1)}
 	
-	[array]$PublicNames = $PublicNames -split ","
-	foreach ($pnm in $PublicNames) {
-	$newrule.WebPublishingProperties.PublicNames.Add($pnm)
-	}
+	if ($SourceNetwork) {
+		foreach ($src in ([array]$SourceNetwork -split ",")) {
+				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
+				}
+		
+	if ($SourceComputerSet) {
+		foreach ($src in ([array]$SourceComputerSet -split ",")) {
+				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
+				}
+	
+	if ($SourceComputer) {
+		foreach ($src in ([array]$SourceComputer -split ",")) {
+				$newrule.SourceSelectionIPs.Computers.Add("$src",0)}
+				}
+	
+	if ($ExcludeNetwork) {
+		foreach ($exc in ([array]$ExcludeNetwork -split ",")) {
+				$newrule.SourceSelectionIPs.Networks.Add("$exc",1)}
+				}
+	
+	if ($ExcludeComputerSet) {
+		foreach ($exc in ([array]$ExcludeComputerSet -split ",")) {
+				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1)}
+				}
+	
+	if ($ExcludeComputer) {
+		foreach ($exc in ([array]$ExcludeComputer -split ",")) {
+				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
+				}
+	
+	if ($PublicNames) {
+		foreach ($pnm in ([array]$PublicNames -split ",")) {
+				$newrule.WebPublishingProperties.PublicNames.Add($pnm) }
+				}
 	
 	if ($LinkTranslationReplace) {
-	$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
-	$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
+		$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
+		$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
 	}
 	
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
@@ -443,19 +541,20 @@ param
 function New-TMGWebListener {
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
+		[parameter(Mandatory=$true)][ValidateSet("NoAuth","HTTP","HTMLForm")] [string]$ClientAuthentication,
+		[ValidateSet("Disabled","IfAuthenticated","Always")][string]$RedirectHTTPAsHTTPS,
 		[string]$ListeningIP,
 		[string]$CustomFormsDirectory,
-		[ValidateSet("Disabled","IfAuthenticated","Always")][string]$RedirectHTTPAsHTTPS,
-		$SSLPort,
-		$HTTPPort = 80,
-		[int]$MaxConnections,
-		[bool]$SSOEnabled = 0,
-		[bool]$HTMLAuthentication,
 		[string]$SSODomainNames,
 		[string]$CertThumbprint,
+		[int]$SSLPort,
+		[int]$HTTPPort = 80,
+		[int]$MaxConnections,
+		[int]$SSLClientCertificateTimeout,
 		[int]$ConnectionTimeout = $([int]::MinValue),
-		[int]$UnlimitedNumberOfConnections = $([int]::MinValue)
-		
+		[int]$UnlimitedNumberOfConnections = $([int]::MinValue),
+		[bool]$SSOEnabled = 0,
+		[bool]$SSLClientCertificateTimeoutEnabled
 	)
 
 	if (-not($WebListener)) {
@@ -470,24 +569,31 @@ function New-TMGWebListener {
 	catch { }
 
 	$newlistener = $WebListener.Add("$Name")
-	if ($RedirectHTTPAsHTTPS) {$newlistener.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
-	
 	$newlistener.Properties.TCPPort = $HTTPPort
 	$newlistener.Properties.SSOEnabled = $SSOEnabled
-
-	if ($SSLPort) {$newlistener.Properties.SSLPort = $SSLPort}
-	if ($MaxConnections -gt 0) {$newlistener.Properties.NumberOfConnections = $MaxConnections}
+	$newlistener.Properties.NumberOfConnections = $MaxConnections
+	$newlistener.Properties.SSLPort = $SSLPort
+	$newlistener.Properties.SSLClientCertificateTimeoutEnabled = $SSLClientCertificateTimeoutEnabled
+	$newlistener.Properties.SSLClientCertificateTimeout = $SSLClientCertificateTimeout
+	
 	if ($SSODomainNames) {$newlistener.Properties.SSOEnabled = 1; $newlistener.Properties.SSODomainNames.Add($SSODomainNames)}
+	if ($RedirectHTTPAsHTTPS) {$newlistener.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
 
-	if ($HTMLAuthentication -eq 1) {
-	$newlistener.Properties.AuthenticationSchemes.Add("FBA with AD",0)
-	$newlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
+	switch ($ClientAuthentication) {
+		NoAuth {
+			$newlistener.Properties.IntegratedWindowsAuthentication = 0
+		}
+		HTTP { <# DEFAULT #> }
+		HTMLForm {
+			$newlistener.Properties.AuthenticationSchemes.Add("FBA with AD",0)
+			$newlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
+		}
 	}
-
+	
 	if ($ListeningIP) {
-	  $newlistener.IPsOnNetworks.Add("EXTERNAL",2,$ListeningIP)
-	} else {
-	  $newlistener.IPsOnNetworks.Add("EXTERNAL",0,"")
+		$newlistener.IPsOnNetworks.Add("EXTERNAL",2,$ListeningIP)
+		} else {
+		$newlistener.IPsOnNetworks.Add("EXTERNAL",0,"")
 	}
 
 	if ($CertThumbprint) {
@@ -584,53 +690,57 @@ param
     [Parameter(Mandatory=$false)] [int]$SpecialHTTPLimitPerMinute = $([int]::MinValue)
 )
 
-	$fpcroot = New-Object -ComObject fpc.root
-	$tmgarray = $fpcroot.GetContainingArray()
+	if (-not($ConnLimit)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ConnLimit = $tmgarray.ArrayPolicy.ConnectionLimitPolicy
+	}
 
 	if ($Enabled -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.Enabled = $Enabled
+		$ConnLimit.Enabled = $Enabled
 	}
 	if ($LogQuotaRejectedTraffic -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.LogQuotaRejectedTraffic = $LogQuotaRejectedTraffic
+		$ConnLimit.LogQuotaRejectedTraffic = $LogQuotaRejectedTraffic
 	}
 
 	if ($DefaultUDPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.UDPLimit = $DefaultUDPLimit
+		$ConnLimit.DefaultLimit.UDPLimit = $DefaultUDPLimit
 	}
 	if ($DefaultTCPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimit = $DefaultTCPLimit
+		$ConnLimit.DefaultLimit.TCPLimit = $DefaultTCPLimit
 	}
 	if ($DefaultOtherLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.OtherLimit = $DefaultOtherLimit
+		$ConnLimit.DefaultLimit.OtherLimit = $DefaultOtherLimit
 	}
 	if ($DefaultTCPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.TCPLimitPerMinute = $DefaultTCPLimitPerMinute
+		$ConnLimit.DefaultLimit.TCPLimitPerMinute = $DefaultTCPLimitPerMinute
 	}
 	if ($DefaultHTTPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.DefaultLimit.HTTPLimitPerMinute = $DefaultHTTPLimitPerMinute
+		$ConnLimit.DefaultLimit.HTTPLimitPerMinute = $DefaultHTTPLimitPerMinute
 	}
 	
 	if ($SpecialUDPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.UDPLimit = $SpecialUDPLimit
+		$ConnLimit.SpecialLimit.UDPLimit = $SpecialUDPLimit
 	}
 	if ($SpecialTCPLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.TCPLimit = $SpecialTCPLimit
+		$ConnLimit.SpecialLimit.TCPLimit = $SpecialTCPLimit
 	}
 	if ($SpecialOtherLimit -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.OtherLimit = $SpecialOtherLimit
+		$ConnLimit.SpecialLimit.OtherLimit = $SpecialOtherLimit
 	}
 	if ($SpecialTCPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.TCPLimitPerMinute = $SpecialTCPLimitPerMinute
+		$ConnLimit.SpecialLimit.TCPLimitPerMinute = $SpecialTCPLimitPerMinute
 	}
 	if ($SpecialHTTPLimitPerMinute -ge 0) {
-		$tmgarray.ArrayPolicy.ConnectionLimitPolicy.SpecialLimit.HTTPLimitPerMinute = $SpecialHTTPLimitPerMinute
+		$ConnLimit.SpecialLimit.HTTPLimitPerMinute = $SpecialHTTPLimitPerMinute
 	}
 	
 	Write-Host "`nWhen you're finished, run Save-TMGFloodMitigationConfiguration to save your changes`n"
 }
 
 function  Save-TMGFloodMitigationConfiguration {
-	try { $tmgarray.ArrayPolicy.ConnectionLimitPolicy.Save() }
+	if (-not($ConnLimit)) {throw "Nothing to save"}
+	try { $ConnLimit.Save() }
 	catch { throw $_.Exception.Message }
 	write-host "Saving..."
 	WaitForSync
