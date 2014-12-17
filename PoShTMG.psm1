@@ -128,7 +128,7 @@ param
 	}
 	
 	ForEach ($rule in $rules) {
-		if ($rule.Name -Like $name -And $rule.Type -eq [PolicyRuleTypes]::WebPublishing) {
+		if ($rule.Name -Like $Filter -And $rule.Type -eq [PolicyRuleTypes]::WebPublishing) {
 			$result += $rule
 		}
 	}
@@ -295,6 +295,51 @@ function New-TMGWebPublishingRule {
 	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
 }
 
+function Move-TMGRule {
+	
+	Param( 
+		[string]$Name,
+		$TMGWebPublishingRule,
+		
+		[switch]$Up,
+		[switch]$Down
+		
+#		[int]$Position,		#Position will determine correct number of MoveUp() or MoveDown() to get to the desired position
+#		[switch]$Top,		#Top 			""					""
+#		[switch]$Bottom		#Bottom			""					""
+	)
+	
+	if ((-Not $TMGWebPublishingRule) -And (-Not $Name)) {
+		Throw "You must provide -TMGWebPublishingRule or -Name"
+	}
+	elseif (($TMGWebPublishingRule) -And ($Name)) {
+		Throw "You must not provide both -TMGWebPublishingRule and -Name"
+	}
+	
+	if (-not($PolicyRules)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
+	}
+	
+	if ($Name) {
+		$rule = Get-TMGWebPublishingRule -Name $Name
+	}
+	if ($TMGWebPublishingRule) {
+		$rule = $TMGWebPublishingRule
+	}
+	
+	if ($Up) { 
+		$global:PolicyRules.MoveUp($rule.order)
+	}
+	
+	if ($Down) {
+		$global:PolicyRules.MoveDown($rule.order)
+	}
+	
+
+}
+
 function Get-TMGAccessRules {
 <#
 	.SYNOPSIS
@@ -323,7 +368,7 @@ param
 	}
 	
 	ForEach ($rule in $rules) {
-		if ($rule.Name -Like $name -And $rule.Type -eq [PolicyRuleTypes]::Access) {
+		if ($rule.Name -Like $Filter -And $rule.Type -eq [PolicyRuleTypes]::Access) {
 			$result += $rule
 		}
 	}
@@ -454,7 +499,7 @@ param
 	}
 	
 	ForEach ($computerset in $computersets) {
-		if ($computerset.Name -Like $name) {
+		if ($computerset.Name -Like $Filter) {
 			$result += $computerset
 		}
 	}
@@ -579,7 +624,7 @@ param
 	}
 	
 	ForEach ($protocol in $protocols) {
-		if ($protocol.Name -Like $name) {
+		if ($protocol.Name -Like $Filter) {
 			$result += $protocol
 		}
 	}
@@ -683,7 +728,7 @@ param
 	}
 	
 	ForEach ($weblistener in $weblisteners) {
-		if ($weblistener.Name -Like $name) {
+		if ($weblistener.Name -Like $Filter) {
 			$result += $weblistener
 		}
 	}
