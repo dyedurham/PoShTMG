@@ -865,7 +865,7 @@ function New-TMGWebListener {
 #>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
-		[parameter(Mandatory=$true)][ValidateSet("NoAuth","HTTP","HTMLForm")] [string]$ClientAuthentication,
+		[ValidateSet("NoAuth","HTTP","HTMLForm")] [string]$ClientAuthentication,
 		[ValidateSet("Disabled","IfAuthenticated","Always")][string]$RedirectHTTPAsHTTPS,
 		[ValidateSet("All","Default","Specified")][string]$ListeningForRequests,
 		[string]$SourceNetworkName,
@@ -877,8 +877,8 @@ function New-TMGWebListener {
 		[int]$HTTPPort = 80,
 		[int]$MaxConnections,
 		[int]$SSLClientCertificateTimeout,
-		[int]$ConnectionTimeout = $([int]::MinValue),
-		[int]$UnlimitedNumberOfConnections = $([int]::MinValue),
+		[int]$ConnectionTimeout,
+		[bool]$UnlimitedNumberOfConnections,
 		[bool]$SSOEnabled = 0,
 		[bool]$SSLClientCertificateTimeoutEnabled
 	)
@@ -897,11 +897,12 @@ function New-TMGWebListener {
 	$newlistener = $WebListener.Add("$Name")
 	$newlistener.Properties.TCPPort = $HTTPPort
 	$newlistener.Properties.SSOEnabled = $SSOEnabled
-	$newlistener.Properties.NumberOfConnections = $MaxConnections
 	$newlistener.Properties.SSLPort = $SSLPort
 	$newlistener.Properties.SSLClientCertificateTimeoutEnabled = $SSLClientCertificateTimeoutEnabled
-	$newlistener.Properties.SSLClientCertificateTimeout = $SSLClientCertificateTimeout
-	
+		
+	if ($MaxConnections) { $newlistener.Properties.NumberOfConnections = $MaxConnections }
+	if ($SSLClientCertificateTimeout) { $newlistener.Properties.SSLClientCertificateTimeout = $SSLClientCertificateTimeout }
+	if ($ConnectionTimeout) { $newlistener.Properties.ConnectionTimeout = $ConnectionTimeout }
 	if ($SSODomainNames) {$newlistener.Properties.SSOEnabled = 1; $newlistener.Properties.SSODomainNames.Add($SSODomainNames)}
 	if ($RedirectHTTPAsHTTPS) {$newlistener.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
 
@@ -929,10 +930,6 @@ function New-TMGWebListener {
 
 	if ($UnlimitedNumberOfConnections -ge 0) {
 		$newlistener.Properties.UnlimitedNumberOfConnections = $UnlimitedNumberOfConnections
-	}
-
-	if ($ConnectionTimeout -ge 0) {
-		$newlistener.Properties.ConnectionTimeout = $ConnectionTimeout
 	}
 
 	return $newlistener
