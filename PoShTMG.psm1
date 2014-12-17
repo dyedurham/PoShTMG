@@ -371,13 +371,13 @@ function New-TMGWebPublishingRule {
 		$newrule.WebPublishingProperties.UserSets.RemoveAll()
 		$newrule.WebPublishingProperties.UserSets.Add($UserSet,([int][IncludeStatus]::$IncludeStatus))
 	}
-	<#
+	
 	if ($PathMappings) {
 		ForEach ($PathMapping in $PathMappings.GetEnumerator()) {
 			if ($PathMapping.Name -eq $PathMapping.Value) { $PathMappingsSame = $true }  else { $PathMappingsSame = $false }
 			$newrule.WebPublishingProperties.PathMappings.Add($PathMapping.Name,$PathMappingsSame,$PathMapping.Value)
 		}
-	}#>
+	}
 	
 	return $newrule
 }
