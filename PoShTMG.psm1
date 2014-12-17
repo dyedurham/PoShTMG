@@ -395,7 +395,7 @@ function Move-TMGRule {
 #>
 	Param( 
 		[parameter(Mandatory=$true,ParameterSetName = "Name")] [string]$Name,
-		[parameter(Mandatory=$true,ParameterSetName = "Rule")] $TMGWebPublishingRule,
+		[parameter(Mandatory=$true,ParameterSetName = "Rule")] $Rule,
 		[parameter(Mandatory=$true,ParameterSetName = "Up")][parameter(ParameterSetName = "Name")][parameter(ParameterSetName = "Rule")] [switch]$Up,
 		[parameter(Mandatory=$true,ParameterSetName = "Down")][parameter(ParameterSetName = "Name")][parameter(ParameterSetName = "Rule")] [switch]$Down
 		#[parameter(Mandatory=$false,ParameterSetName = "Up")][parameter(ParameterSetName = "Down")] [int]$Number =1
@@ -410,9 +410,8 @@ function Move-TMGRule {
 
 	)
 	
-	#if ((-Not $TMGWebPublishingRule) -And (-Not $Name)) { Throw "You must provide either -TMGWebPublishingRule or -Name" }
-	#elseif (($TMGWebPublishingRule) -And ($Name)) { Throw "You must not provide BOTH -TMGWebPublishingRule and -Name" }
-	
+	if ((-Not $Rule) -And (-Not $Name)) { Throw "You must provide either -TMGWebPublishingRule or -Name" }
+		
 	if (-not($PolicyRules)) {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
@@ -422,21 +421,18 @@ function Move-TMGRule {
 	if ($Name) {
 		ForEach ($policyrule in $global:PolicyRules) {
 			if ($policyrule.Name -eq $Name) {
-				$rule = $policyrule
+				$Rule = $policyrule
 				break
 			}
 		}
 	}
-	if ($TMGWebPublishingRule) {
-		$rule = $TMGWebPublishingRule
-	}
 	
 	if ($Up) { 
-		$global:PolicyRules.MoveUp($rule.order)
+		$global:PolicyRules.MoveUp($Rule.order)
 	}
 	
 	if ($Down) {
-		$global:PolicyRules.MoveDown($rule.order)
+		$global:PolicyRules.MoveDown($Rule.order)
 	}
 	
 	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
