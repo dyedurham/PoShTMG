@@ -329,6 +329,10 @@ function Move-TMGRule {
 #		[int]$Position,		#Position will determine correct number of MoveUp() or MoveDown() to get to the desired position
 #		[switch]$Top,		#Top 			""					""
 #		[switch]$Bottom		#Bottom			""					""
+
+#		$AboveRuleNamed		#will place this rule immediately above the specified rule
+#		$BelowRuleNamed,	#will place this rule immediately below the specified rule
+
 	)
 	
 	if ((-Not $TMGWebPublishingRule) -And (-Not $Name)) {
@@ -345,7 +349,12 @@ function Move-TMGRule {
 	}
 	
 	if ($Name) {
-		$rule = Get-TMGWebPublishingRule -Name $Name
+		ForEach ($policyrule in $global:PolicyRules) {
+			if ($policyrule.Name -eq $Name) {
+				$rule = $policyrule
+				break
+			}
+		}
 	}
 	if ($TMGWebPublishingRule) {
 		$rule = $TMGWebPublishingRule
@@ -359,7 +368,7 @@ function Move-TMGRule {
 		$global:PolicyRules.MoveDown($rule.order)
 	}
 	
-
+	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
 }
 
 function Get-TMGAccessRules {
