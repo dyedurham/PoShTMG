@@ -279,6 +279,51 @@ function New-TMGWebPublishingRule {
 	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
 }
 
+function Move-TMGRule {
+	
+	Param( 
+		[string]$Name,
+		$TMGWebPublishingRule,
+		
+		[switch]$Up,
+		[switch]$Down
+		
+#		[int]$Position,		#Position will determine correct number of MoveUp() or MoveDown() to get to the desired position
+#		[switch]$Top,		#Top 			""					""
+#		[switch]$Bottom		#Bottom			""					""
+	)
+	
+	if ((-Not $TMGWebPublishingRule) -And (-Not $Name)) {
+		Throw "You must provide -TMGWebPublishingRule or -Name"
+	}
+	else if (($TMGWebPublishingRule) -And ($Name)) {
+		Throw "You must not provide both -TMGWebPublishingRule and -Name"
+	}
+	
+	if (-not($PolicyRules)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
+	}
+	
+	if ($Name) {
+		$rule = Get-TMGWebPublishingRule -Name $Name
+	}
+	if ($TMGWebPublishingRule) {
+		$rule = $TMGWebPublishingRule
+	}
+	
+	if ($Up) { 
+		$global:PolicyRules.MoveUp($rule.order)
+	}
+	
+	if ($Down) {
+		$global:PolicyRules.MoveDown($rule.order)
+	}
+	
+
+}
+
 function Get-TMGAccessRules {
 <#
 	.SYNOPSIS
