@@ -898,6 +898,16 @@ function New-TMGWebListener {
 }
 
 function Add-TMGIPRangeToNetwork {
+<#
+	.SYNOPSIS
+	Adds an IP range to the specified TMG Network object.
+	.DESCRIPTION
+	Uses COM to add an IP range to a TMG Network on the array that this TMG server is a member of.
+	.EXAMPLE
+	Add-TMGIPRangeToNetwork -NetworkName Internal -LowIP 192.168.6.12 -HighIP 192.168.6.80
+	.EXAMPLE
+	Add-TMGIPRangeToNetwork -NetworkName SecretNetwork -LowIP 192.168.7.12 -HighIP 192.168.8.90
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$NetworkName,
 		[parameter(Mandatory=$true)] [string]$LowIP,
@@ -917,6 +927,18 @@ function Add-TMGIPRangeToNetwork {
 }
 
 function Add-TMGAdapterRangeToNetwork {
+<#
+	.SYNOPSIS
+	Automatically adds an IP range taken from a network adaprot to the specified TMG Network object.
+	.DESCRIPTION
+	Uses COM to gather network data from the specified ethernet adapter then add it's IP range to a TMG Network on the array that this TMG server is a member of.
+	
+	Available adapter names can be gathered via the GUI - Networking > Network Adapters.
+	.EXAMPLE
+	Add-TMGAdapterRangeToNetwork -NetworkName Internal -AdapterName Ethernet
+	.EXAMPLE
+	Add-TMGAdapterRangeToNetwork -NetworkName Internal -AdapterName MyVLAN63Adapter
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$NetworkName,
 		[parameter(Mandatory=$true)] [string]$AdapterName
