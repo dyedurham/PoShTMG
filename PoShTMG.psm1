@@ -267,9 +267,9 @@ function New-TMGWebPublishingRule {
 		[string]$ExternalPathMapping,
 		[bool]$SameAsInternalPath,
 		[hashtable]$PathMappings,
+		[bool]$TranslateLinks = 0,
 		[string]$LinkTranslationReplace,
 		[string]$LinkTranslationReplaceWith,
-		[bool]$TranslateLinks = 0,
 		[bool]$Enabled = $true,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
@@ -354,7 +354,7 @@ function New-TMGWebPublishingRule {
 
 	if ($PathMappings) {
 		ForEach ($PathMapping in $PathMappings.GetEnumerator()) {
-			if ($PathMapping.Name -eq $PathMapping.Valu)e { $PathMappingsSame = $true }  else { $PathMappingsSame = $false }
+			if ($PathMapping.Name -eq $PathMapping.Value) { $PathMappingsSame = $true }  else { $PathMappingsSame = $false }
 			$newrule.WebPublishingProperties.PathMappings.Add($PathMapping.Name,$PathMappingsSame,$PathMapping.Value)
 		}
 	}
