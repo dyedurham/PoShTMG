@@ -92,6 +92,28 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#FpcConnectionProtocolType 
+# fpcICMP = 1
+# fpcIGMP = 2
+# fpcGGP  = 3
+# fpcIP = 4
+# fpcST = 5
+# fpcTCP = 6
+# fpcUDP = 17
+# fpcICMPv6 = 158
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum ConnectionProtocolType {
+		ICMP = 1,
+		IGMP = 2,
+		GGP  = 3,
+		IP = 4,
+		ST = 5,
+		TCP = 6,
+		UDP = 17,
+		ICMPv6 = 158
+	}
+"@
+
 ########	CONSTANTS
 
 #LINK TRANSLATION MAPPING GUID
@@ -664,19 +686,18 @@ function Add-TMGProtocolPort {
 	Uses COM to add a port to the the TMG protocol on the array that this TMG server is a member of, with the specified name.
 	.EXAMPLE
 	Add-TMGProtocolPort -Name MySpecialProtocol -LowPort 110 -HighPort 120 -Direction In -TCP
+	Add-TMGProtocolPort -Name MyRawProtocol -Direction In -Raw
 #>
 	Param(
 		[parameter(Mandatory=$true)][string]$Name,
-		[parameter(Mandatory=$true)][int]$LowPort,
-		[parameter(Mandatory=$true)][int]$HighPort,
 		[parameter(Mandatory=$true)][ValidateSet("In","Out","ReceiveOnly","SendOnly","ReceiveSend","SendReceive")][string]$Direction,
 		[parameter(Mandatory=$true)][ValidateSet("Primary","Secondary")][string]$Connection,
+		[parameter(Mandatory=$true)][ValidateSet("ICMP","TCP","UDP","Raw")][string]$IPType,
+		[ValidateSet("ICMP","IGMP","GGP","IP","ST","TCP","UDP","ICMPv6")][string]$RawConnectionProtocol,
+		[int]$LowPort,
+		[int]$HighPort,
 		[int]$ICMPCode,
 		[int]$ICMPType,
-		[switch]$TCP,
-		[switch]$ICMP,
-		[switch]$RAW,
-		[switch]$UDP
 	)
 
 	if (($TCP -eq $false) -and ($UDP -eq $false) -and ($ICMP -eq $false) -and ($RAW -eq $false)) {throw "You must specify an IP protocol"}
@@ -692,11 +713,13 @@ function Add-TMGProtocolPort {
 	if ($Connection -eq "Primary") { $npcmd = $newprot.PrimaryConnections }
 	if ($Connection -eq "Secondary") { $npcmd = $newprot.SecondaryConnections }
 	
-	if ($TCP) { $npcmd.AddTCP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
-	if ($UDP) { $npcmd.AddUDP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
-	if ($ICMP) { $npcmd.AddICMP(([int][ConnectionDirection]::$Direction),$ICMPCode,$ICMPType) }
-	if ($RAW) { $npcmd.AddRAW(([int][ConnectionDirection]::$Direction),$LowPort) }
-
+	switch ($IPType) {
+		TCP { $npcmd.AddTCP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
+		UDP { $npcmd.AddUDP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
+		ICMP { $npcmd.AddICMP(([int][ConnectionDirection]::$Direction),$ICMPCode,$ICMPType) }
+		Raw { $npcmd.AddRAW(([int][ConnectionDirection]::$Direction),([int][ConnectionProtocolType]::$RawConnectionProtocol)) }
+	}
+	
 	Write-Host "`nWhen you're finished, run Save-TMGProtocols to save your changes`n"
 }
 
