@@ -90,11 +90,11 @@ param
 function New-TMGWebPublishingRule {
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
-		[parameter(Mandatory=$true)] [string]$ServerHostName,
-		[parameter(Mandatory=$true)] [string]$ServerIP,
+		[parameter(Mandatory=$true)][ValidateSet("Allow","Deny")][string]$Action,
+		[string]$ServerHostName,
+		[string]$ServerIP,
 		[parameter(Mandatory=$true)] [string]$WebListener,
-		[parameter(Mandatory=$true)] [string]$PublicNames,
-		[ValidateSet("Allow","Deny")][string]$Action,
+		[string]$PublicNames,
 		[string]$DeniedRuleRedirectURL,
 		[string]$LogoffURL,
 		[string]$SourceNetwork,
