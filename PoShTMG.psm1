@@ -49,15 +49,22 @@ Add-Type -TypeDefinition @"
 "@
 
 #CredentialsDelegation
+# 0 = fpcDelegationNonePassThrough
+# 1 = fpcDelegationNoneBlock
+# 2 = fpcDelegationSecurID 
+# 3 = fpcDelegationBasic
+# 4 = fpcDelegationNTLM
+# 5 = fpcDelegationSPNEGO
+# 6 = fpcDelegationKerberosConstrained
 Add-Type -TypeDefinition @"
 	[System.Flags] public enum CredentialsDelegation {
-		NoneClientMay  = 0,				#fpcDelegationNonePassThrough
-		NoneClientCannot  = 1,			#fpcDelegationNoneBlock
-		RSASecurID  = 2,				#fpcDelegationSecurID 
-		Basic = 3,						#fpcDelegationBasic
-		NTLM = 4,						#fpcDelegationNTLM
-		Negotiate = 5,					#fpcDelegationSPNEGO
-		Kerberos = 6					#fpcDelegationKerberosConstrained
+		NoneClientMay  = 0,				
+		NoneClientCannot  = 1,			
+		RSASecurID  = 2,				
+		Basic = 3,						
+		NTLM = 4,						
+		Negotiate = 5,					
+		Kerberos = 6					
 	}
 "@
 
