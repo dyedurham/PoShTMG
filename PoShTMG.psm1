@@ -236,37 +236,37 @@ function New-TMGWebPublishingRule {
 	if ($SourceNetworks) {
 		foreach ($src in ([array]$SourceNetworks -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
-				}
+	}
 		
 	if ($SourceComputerSets) {
 		foreach ($src in ([array]$SourceComputerSets -split ",")) {
 				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
-				}
+	}
 	
 	if ($SourceComputers) {
 		foreach ($src in ([array]$SourceComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$src",0)}
-				}
+	}
 	
 	if ($ExcludeNetworks) {
 		foreach ($exc in ([array]$ExcludeNetworks -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$exc",1)}
-				}
+	}
 	
 	if ($ExcludeComputerSets) {
 		foreach ($exc in ([array]$ExcludeComputerSets -split ",")) {
 				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1)}
-				}
+	}
 	
 	if ($ExcludeComputers) {
 		foreach ($exc in ([array]$ExcludeComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
-				}
+	}
 	
 	if ($PublicNames) {
 		foreach ($pnm in ([array]$PublicNames -split ",")) {
 				$newrule.WebPublishingProperties.PublicNames.Add($pnm) }
-				}
+	}
 	
 	if ($LinkTranslationReplace) {
 		$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
@@ -372,40 +372,41 @@ function New-TMGAccessRule {
 	if ($ProtocolNames) {
 		foreach ($prt in ([array]$ProtocolNames -split ",")) {
 				$newrule.AccessProperties.SpecifiedProtocols.Add("$prt",0)
-				}
+		}
+	}
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
 	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
 	
 	if ($SourceNetwork) {
 		foreach ($src in ([array]$SourceNetwork -split ",")) {
-				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
-				}
+				$newrule.SourceSelectionIPs.Networks.Add("$src",0) }
+	}
 		
 	if ($SourceComputerSet) {
 		foreach ($src in ([array]$SourceComputerSet -split ",")) {
-				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
-				}
+				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0) }
+	}
 	
 	if ($SourceComputer) {
 		foreach ($src in ([array]$SourceComputer -split ",")) {
-				$newrule.SourceSelectionIPs.Computers.Add("$src",0)}
-				}
+				$newrule.SourceSelectionIPs.Computers.Add("$src",0) }
+	}
 	
 	if ($ExcludeNetwork) {
 		foreach ($exc in ([array]$ExcludeNetwork -split ",")) {
-				$newrule.SourceSelectionIPs.Networks.Add("$exc",1)}
-				}
+				$newrule.SourceSelectionIPs.Networks.Add("$exc",1) }
+	}
 	
 	if ($ExcludeComputerSet) {
 		foreach ($exc in ([array]$ExcludeComputerSet -split ",")) {
-				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1)}
-				}
+				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1) }
+	}
 	
 	if ($ExcludeComputer) {
 		foreach ($exc in ([array]$ExcludeComputer -split ",")) {
-				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
-				}
+				$newrule.SourceSelectionIPs.Computers.Add("$exc",1) }
+	}
 
 	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
 }
