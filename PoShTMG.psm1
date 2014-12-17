@@ -471,6 +471,18 @@ function New-TMGComputerSet {
 }
 
 function Add-TMGComputerToSet {
+<#
+	.SYNOPSIS
+	Adds an entry to the TMG Computer Set with the specified name.
+	.DESCRIPTION
+	Uses COM to add a name/address pair to the TMG Computer Set on the array that this TMG server is a member of with the specified name.
+	.EXAMPLE
+	Add-TMGComputerToSet -SetName MySet -ClientName MYSERVER -ComputerIP 192.168.1.1
+	.PARAMETER ClientName
+	Matches the Name field in the list of entries under a computer set.
+	.PARAMETER ComputerIP
+	Matches the IP Address field in the list of entries under a computer set.
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$SetName,
 		[parameter(Mandatory=$true)] [string]$ClientName,
