@@ -350,11 +350,12 @@ function New-TMGWebPublishingRule {
 	}
 	
 	if ($LinkTranslationReplace) {
-		try {
+		<#try {
 			$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
 		} catch {
 			$nlt = $newrule.VendorParametersSets.Add($LinkTransGUID)
-		}
+		}#>
+		$nlt = $newrule.VendorParametersSets.Add($LinkTransGUID)
 		$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
 	}
 	
