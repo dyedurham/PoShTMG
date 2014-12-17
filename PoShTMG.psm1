@@ -179,7 +179,6 @@ function New-TMGWebPublishingRule {
 		[string]$ServerIP,
 		[parameter(Mandatory=$true)] [string]$WebListener,
 		[string]$PublicNames,
-		[ValidateSet("Allow","Deny")][string]$Action,
 		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
 		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication = "NTLM",
 		[string]$DeniedRuleRedirectURL,
@@ -196,7 +195,7 @@ function New-TMGWebPublishingRule {
 		[string]$LinkTranslationReplaceWith,
 		[bool]$SameAsInternalPath,
 		[bool]$TranslateLinks = 0,
-		[bool]$Enable,
+		[bool]$Enabled = $true,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
 		[switch]$ForwardOriginalHostHeader,
@@ -222,10 +221,10 @@ function New-TMGWebPublishingRule {
 	$newrule.WebPublishingProperties.TranslateLinks = 0
 	$newrule.WebPublishingProperties.CredentialsDelegationType = [int][CredentialsDelegation]::($ServerAuthentication)
 	$newrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL
-	$newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort
-	$newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort
+	if ($SSLRedirectPort) { $newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort }
+	if ($HTTPRedirectPort) { $newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
 	$newrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials
-	$newrule.WebPublishingProperties.Enabled = $Enable
+	$newrule.Enabled = $Enabled
 	$newrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader
 	
 	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
@@ -234,40 +233,40 @@ function New-TMGWebPublishingRule {
 	## APPLY ACCESS POLICY IF SPECIFIED
 	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
 	
-	if ($SourceNetwork) {
-		foreach ($src in ([array]$SourceNetwork -split ",")) {
+	if ($SourceNetworks) {
+		foreach ($src in ([array]$SourceNetworks -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
-				}
+	}
 		
-	if ($SourceComputerSet) {
-		foreach ($src in ([array]$SourceComputerSet -split ",")) {
+	if ($SourceComputerSets) {
+		foreach ($src in ([array]$SourceComputerSets -split ",")) {
 				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
-				}
+	}
 	
-	if ($SourceComputer) {
-		foreach ($src in ([array]$SourceComputer -split ",")) {
+	if ($SourceComputers) {
+		foreach ($src in ([array]$SourceComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$src",0)}
-				}
+	}
 	
-	if ($ExcludeNetwork) {
-		foreach ($exc in ([array]$ExcludeNetwork -split ",")) {
+	if ($ExcludeNetworks) {
+		foreach ($exc in ([array]$ExcludeNetworks -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$exc",1)}
-				}
+	}
 	
-	if ($ExcludeComputerSet) {
-		foreach ($exc in ([array]$ExcludeComputerSet -split ",")) {
+	if ($ExcludeComputerSets) {
+		foreach ($exc in ([array]$ExcludeComputerSets -split ",")) {
 				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1)}
-				}
+	}
 	
-	if ($ExcludeComputer) {
-		foreach ($exc in ([array]$ExcludeComputer -split ",")) {
+	if ($ExcludeComputers) {
+		foreach ($exc in ([array]$ExcludeComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
-				}
+	}
 	
 	if ($PublicNames) {
 		foreach ($pnm in ([array]$PublicNames -split ",")) {
 				$newrule.WebPublishingProperties.PublicNames.Add($pnm) }
-				}
+	}
 	
 	if ($LinkTranslationReplace) {
 		$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
@@ -373,40 +372,41 @@ function New-TMGAccessRule {
 	if ($ProtocolNames) {
 		foreach ($prt in ([array]$ProtocolNames -split ",")) {
 				$newrule.AccessProperties.SpecifiedProtocols.Add("$prt",0)
-				}
+		}
+	}
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
 	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
 	
 	if ($SourceNetwork) {
 		foreach ($src in ([array]$SourceNetwork -split ",")) {
-				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
-				}
+				$newrule.SourceSelectionIPs.Networks.Add("$src",0) }
+	}
 		
 	if ($SourceComputerSet) {
 		foreach ($src in ([array]$SourceComputerSet -split ",")) {
-				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
-				}
+				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0) }
+	}
 	
 	if ($SourceComputer) {
 		foreach ($src in ([array]$SourceComputer -split ",")) {
-				$newrule.SourceSelectionIPs.Computers.Add("$src",0)}
-				}
+				$newrule.SourceSelectionIPs.Computers.Add("$src",0) }
+	}
 	
 	if ($ExcludeNetwork) {
 		foreach ($exc in ([array]$ExcludeNetwork -split ",")) {
-				$newrule.SourceSelectionIPs.Networks.Add("$exc",1)}
-				}
+				$newrule.SourceSelectionIPs.Networks.Add("$exc",1) }
+	}
 	
 	if ($ExcludeComputerSet) {
 		foreach ($exc in ([array]$ExcludeComputerSet -split ",")) {
-				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1)}
-				}
+				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1) }
+	}
 	
 	if ($ExcludeComputer) {
 		foreach ($exc in ([array]$ExcludeComputer -split ",")) {
-				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
-				}
+				$newrule.SourceSelectionIPs.Computers.Add("$exc",1) }
+	}
 
 	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
 }
