@@ -502,6 +502,20 @@ function Add-TMGComputerToSet {
 }
 
 function New-TMGStaticRoute {
+<#
+	.SYNOPSIS
+	Adds an entry to the TMG Network Topology Routes list.
+	.DESCRIPTION
+	Uses COM to add a route to the TMG Network Topology Routes list on the array that this TMG server is a member of.
+	
+	Accepts dot-decimal notation only for all parameters.
+	.EXAMPLE
+	New-TMGStaticRoute -Destination 192.168.5.128 -Mask 255.255.255.128 -Gateway 192.168.1.254 -Metric 16
+	.PARAMETER Destination
+	The network address of the destination network.
+	.PARAMETER Mask
+	The netmask of the destination.
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Destination,
 		[parameter(Mandatory=$true)] [string]$Mask,
