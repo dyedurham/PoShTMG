@@ -340,7 +340,7 @@ function New-TMGAccessRule {
 	.PARAMETER ExcludeComputer
 	A comma separated list of computer objects to add to the Exceptions box on the From tab.
 	.EXAMPLE
-	New-TMGAccessRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1 -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
+	New-TMGAccessRule -Name Test -Action Allow -ProtocolSelectionMethod AllExceptSelected -ProtocolNames HTTP -ExcludeNetwork MyEnemies
 #>
 	Param(
 		[parameter(Mandatory=$true)][string]$Name,
