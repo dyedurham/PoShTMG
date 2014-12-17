@@ -170,14 +170,10 @@ function New-TMGWebPublishingRule {
 		[string]$ServerHostName,
 		[string]$ServerIP,
 		[parameter(Mandatory=$true)] [string]$WebListener,
-<<<<<<< HEAD
 		[string]$PublicNames,
-=======
-		[parameter(Mandatory=$true)] [string]$PublicNames,
 		[ValidateSet("Allow","Deny")][string]$Action,
 		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
 		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication = "NTLM",
->>>>>>> 7bd5cbfae7aeea6144205f2867e8accd47fd38d2
 		[string]$DeniedRuleRedirectURL,
 		[string]$LogoffURL,
 		[string]$SourceNetwork,
