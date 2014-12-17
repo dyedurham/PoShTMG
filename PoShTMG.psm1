@@ -76,6 +76,14 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#FpcConnectionDirectionType
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum ConnectionDirection {
+		In  = 0,
+		Out  = 1
+	}
+"@
+
 ########	CONSTANTS
 
 #LINK TRANSLATION MAPPING GUID
@@ -508,7 +516,7 @@ function New-TMGStaticRoute {
 	.DESCRIPTION
 	Uses COM to add a route to the TMG Network Topology Routes list on the array that this TMG server is a member of.
 	
-	Accepts dot-decimal notation only for all parameters.
+	Accepts dot-decimal notation only for all address parameters.
 	.EXAMPLE
 	New-TMGStaticRoute -Destination 192.168.5.128 -Mask 255.255.255.128 -Gateway 192.168.1.254 -Metric 16
 	.PARAMETER Destination
@@ -572,6 +580,14 @@ param
 }
 
 function New-TMGProtocolDefinition {
+<#
+	.SYNOPSIS
+	Adds a TMG User-Defined Protocol object with the specified name.
+	.DESCRIPTION
+	Uses COM to create the TMG Protocol on the array that this TMG server is a member of, with the specified name.
+	.EXAMPLE
+	New-TMGProtocolDefinition -Name MySpecialProtocol
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name
 	)
@@ -588,11 +604,19 @@ function New-TMGProtocolDefinition {
 }
 
 function Add-TMGProtocolPort {
-	Param( 
+<#
+	.SYNOPSIS
+	Adds a TMG User-Defined Protocol port parameter to the protocol with the specified name.
+	.DESCRIPTION
+	Uses COM to add a port to the the TMG protocol on the array that this TMG server is a member of, with the specified name.
+	.EXAMPLE
+	Add-TMGProtocolPort -Name MySpecialProtocol -LowPort 110 -HighPort 120 -Direction In -TCP
+#>
+	Param(
 		[parameter(Mandatory=$true)] [string]$Name,
 		[parameter(Mandatory=$true)] [int]$LowPort,
 		[parameter(Mandatory=$true)] [int]$HighPort,
-		[parameter(Mandatory=$true)] [int]$Direction,
+		[parameter(Mandatory=$true)][ValidateSet("In","Out")][string]$Direction,
 		[switch]$TCP,
 		[switch]$UDP
 	)
@@ -606,8 +630,8 @@ function Add-TMGProtocolPort {
 	}
 
 	$newprot = $Protocol.Item($Name)
-	if ($TCP) { $newprot.PrimaryConnections.AddTCP($Direction,$LowPort,$HighPort) }
-	if ($UDP) { $newprot.PrimaryConnections.AddUDP($Direction,$LowPort,$HighPort) }
+	if ($TCP) { $newprot.PrimaryConnections.AddTCP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
+	if ($UDP) { $newprot.PrimaryConnections.AddUDP(([int][ConnectionDirection]::$Direction),$LowPort,$HighPort) }
 
 	Write-Host "`nWhen you're finished, run Save-TMGProtocols to save your changes`n"
 }
