@@ -7,6 +7,11 @@
 ###															###
 ###  @ GlobalX Information Pty. Ltd. Brisbane 2014			###
 ###															###
+###															###
+###		NOTES												###
+###	Need to add protocols to webpublishingrules				###
+###															###
+###															###
 ###############################################################
 
 ########	TYPE DEFINITIONS
@@ -281,6 +286,9 @@ function New-TMGWebPublishingRule {
 		[switch]$StripDomainFromCredentials
 	)
 	
+	#### INPUT VALIDATION
+	if (($Enabled) -and (-not($ServerHostName)) -and (-not($PublicNames))) { throw "An enabled rule must contain a ServerHostName and at least 1 PublicNames" }
+	
 	if (-not($PolicyRules)) {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
@@ -291,7 +299,7 @@ function New-TMGWebPublishingRule {
 	  $PolicyRules.Remove("$Name")
 	}
 	catch {	}
-
+	
 	$newrule = $PolicyRules.AddWebPublishingRule("$Name")
 	$newrule.WebPublishingProperties.WebSite = $ServerHostName
 	$newrule.WebPublishingProperties.PublishedServer = $ServerIP
@@ -363,13 +371,13 @@ function New-TMGWebPublishingRule {
 		$newrule.WebPublishingProperties.UserSets.RemoveAll()
 		$newrule.WebPublishingProperties.UserSets.Add($UserSet,([int][IncludeStatus]::$IncludeStatus))
 	}
-	
+	<#
 	if ($PathMappings) {
 		ForEach ($PathMapping in $PathMappings.GetEnumerator()) {
 			if ($PathMapping.Name -eq $PathMapping.Value) { $PathMappingsSame = $true }  else { $PathMappingsSame = $false }
 			$newrule.WebPublishingProperties.PathMappings.Add($PathMapping.Name,$PathMappingsSame,$PathMapping.Value)
 		}
-	}
+	}#>
 	
 	return $newrule
 }
