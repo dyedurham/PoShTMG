@@ -315,7 +315,12 @@ function Move-TMGRule {
 	}
 	
 	if ($Name) {
-		$rule = Get-TMGWebPublishingRule -Name $Name
+		ForEach ($policyrule in $global:PolicyRules) {
+			if ($policyrule.Name -eq $Name) {
+				$rule = $policyrule
+				break
+			}
+		}
 	}
 	if ($TMGWebPublishingRule) {
 		$rule = $TMGWebPublishingRule
