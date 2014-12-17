@@ -120,7 +120,7 @@ param
 	}
 	
 	ForEach ($rule in $rules) {
-		if ($rule.Name -Like $name -And $rule.Type -eq [PolicyRuleTypes]::WebPublishing) {
+		if ($rule.Name -Like $Filter -And $rule.Type -eq [PolicyRuleTypes]::WebPublishing) {
 			$result += $rule
 		}
 	}
