@@ -235,32 +235,32 @@ function New-TMGWebPublishingRule {
 	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
 	
 	if ($SourceNetwork) {
-		foreach ($src in ([array]$SourceNetwork -split ",")) {
+		foreach ($src in ([array]$SourceNetworks -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
 				}
 		
 	if ($SourceComputerSet) {
-		foreach ($src in ([array]$SourceComputerSet -split ",")) {
+		foreach ($src in ([array]$SourceComputerSets -split ",")) {
 				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
 				}
 	
 	if ($SourceComputer) {
-		foreach ($src in ([array]$SourceComputer -split ",")) {
+		foreach ($src in ([array]$SourceComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$src",0)}
 				}
 	
 	if ($ExcludeNetwork) {
-		foreach ($exc in ([array]$ExcludeNetwork -split ",")) {
+		foreach ($exc in ([array]$ExcludeNetworks -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$exc",1)}
 				}
 	
 	if ($ExcludeComputerSet) {
-		foreach ($exc in ([array]$ExcludeComputerSet -split ",")) {
+		foreach ($exc in ([array]$ExcludeComputerSets -split ",")) {
 				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1)}
 				}
 	
 	if ($ExcludeComputer) {
-		foreach ($exc in ([array]$ExcludeComputer -split ",")) {
+		foreach ($exc in ([array]$ExcludeComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
 				}
 	
