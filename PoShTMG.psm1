@@ -124,6 +124,14 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#FpcIncludeStatus
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum IncludeStatus {
+		Include  = 0,
+		Exclude  = 1
+	}
+"@
+
 ########	CONSTANTS
 
 #LINK TRANSLATION MAPPING GUID
@@ -213,22 +221,38 @@ function New-TMGWebPublishingRule {
 	GUI Location: Link Translation tab / Apply link translation...
 	.PARAMETER ServerAuthentication
 	GUI Location: Authentication Delegation tab / Method used...
+	NoneClientMay | NoneClientCannot | RSASecurID | Basic | NTLM | Negotiate | Kerberos
+	.PARAMETER ServerType
+	GUI Location: Bridging tab.
+	HTTP | HTTPS | HTTPandSSL | FTP
 	.PARAMETER HTTPRedirectPort
 	GUI Location: Bridging tab.
 	.PARAMETER SSLRedirectPort
 	GUI Location: Bridging tab.
+	.PARAMETER UserSet
+	GUI Location: Users tab.
+	Specifies a User Set object to add to the rule. This can be included or an excluded with the IncludeStatus parameter.
+	.PARAMETER IncludeStatus
+	GUI Location: Users tab.
+	Include | Exclude
+	When specified with a UserSet, this parameter specifies whether the User Set is Included or Excluded.
+	Included adds the set to the This rule applies to... list.
+	Excluded adds the set to the Exceptions list.
+	Default is Included.
 	.EXAMPLE
 	New-TMGWebPublishingRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1 -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
 #>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
 		[parameter(Mandatory=$true)][ValidateSet("Allow","Deny")][string]$Action,
-		[string]$ServerHostName,
-		[string]$ServerIP,
 		[parameter(Mandatory=$true)] [string]$WebListener,
-		[string]$PublicNames,
 		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
 		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication = "NTLM",
+		[ValidateSet("Include","Exclude")][string]$IncludeStatus = "Include",
+		[string]$UserSet,
+		[string]$ServerHostName,
+		[string]$ServerIP,
+		[string]$PublicNames,
 		[string]$DeniedRuleRedirectURL,
 		[string]$LogoffURL,
 		[string]$SourceNetworks,
@@ -321,6 +345,7 @@ function New-TMGWebPublishingRule {
 		$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
 	}
 	
+	if ($UserSet) { $newrule.WebPublishingProperties.UserSets.Add($UserSet,([int][IncludeStatus]::$IncludeStatus)) }	
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
 	if ($InternalPathMapping) {$newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping)}
 
