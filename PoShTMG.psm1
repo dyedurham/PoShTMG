@@ -397,7 +397,7 @@ function Move-TMGRule {
 		[parameter(Mandatory=$true,ParameterSetName = "Name")] [string]$Name,
 		[parameter(Mandatory=$true,ParameterSetName = "Rule")] $TMGWebPublishingRule,
 		[parameter(Mandatory=$true,ParameterSetName = "Up")][parameter(ParameterSetName = "Name")][parameter(ParameterSetName = "Rule")] [switch]$Up,
-		[parameter(Mandatory=$true,ParameterSetName = "Down")][parameter(ParameterSetName = "Name")][parameter(ParameterSetName = "Rule")] [switch]$Down,
+		[parameter(Mandatory=$true,ParameterSetName = "Down")][parameter(ParameterSetName = "Name")][parameter(ParameterSetName = "Rule")] [switch]$Down
 		#[parameter(Mandatory=$false,ParameterSetName = "Up")][parameter(ParameterSetName = "Down")] [int]$Number =1
 
 		
