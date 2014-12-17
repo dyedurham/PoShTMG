@@ -242,9 +242,9 @@ function New-TMGWebPublishingRule {
 	Excluded adds the set to the Exceptions list.
 	Default is Included.
 	.EXAMPLE
-	New-TMGWebPublishingRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1 -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
+	New-TMGWebPublishingRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1 -WebListener MyWL -PublicNames "www.mysite.com,www.awesome.com"
 	.EXAMPLE
-	New-TMGWebPublishingRule -Name Test -Action Deny -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
+	New-TMGWebPublishingRule -Name Test -Action Deny -WebListener MyWL -PublicNames "www.mysite.com,www.awesome.com"
 	.EXAMPLE
 	New-TMGWebPublishingRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1  -WebListener MyWL -ForwardOriginalHostHeader -UserSet MyUserList -IncludeStatus Include
 #>
@@ -308,7 +308,6 @@ function New-TMGWebPublishingRule {
 	if ($HTTPRedirectPort) { $newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
 	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
 	if ($ServerType) {$newrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType}
-	if ($UserSet) { $newrule.WebPublishingProperties.UserSets.Add($UserSet,([int][IncludeStatus]::$IncludeStatus)) }	
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
 	if ($InternalPathMapping) {$newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping)}
 	
@@ -354,7 +353,12 @@ function New-TMGWebPublishingRule {
 		$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
 		$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
 	}
-
+	
+	if ($UserSet) {
+		$newrule.WebPublishingProperties.UserSets.RemoveAll()
+		$newrule.WebPublishingProperties.UserSets.Add($UserSet,([int][IncludeStatus]::$IncludeStatus))
+	}
+	
 	if ($PathMappings) {
 		ForEach ($PathMapping in $PathMappings.GetEnumerator()) {
 			if ($PathMapping.Name -eq $PathMapping.Value) { $PathMappingsSame = $true }  else { $PathMappingsSame = $false }
@@ -512,12 +516,6 @@ function New-TMGAccessRule {
 	$newrule = $PolicyRules.AddAccessRule("$Name")
 	$newrule.Action = [int][PolicyRuleActions]::$Action
 	$newrule.AccessProperties.ProtocolSelectionMethod = [int][ProtocolSelectionType]::$ProtocolSelectionMethod
-	if ($UserSet) { $newrule.AccessProperties.UserSets.Add($UserSet,([int][IncludeStatus]::$IncludeStatus)) }	
-	
-	if ($ProtocolNames) {
-		foreach ($prt in ([array]$ProtocolNames -split ",")) {
-				$newrule.AccessProperties.SpecifiedProtocols.Add("$prt",0) }
-	}
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
 	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
@@ -550,6 +548,16 @@ function New-TMGAccessRule {
 	if ($ExcludeComputer) {
 		foreach ($exc in ([array]$ExcludeComputer -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$exc",1) }
+	}
+	
+	if ($ProtocolNames) {
+		foreach ($prt in ([array]$ProtocolNames -split ",")) {
+				$newrule.AccessProperties.SpecifiedProtocols.Add("$prt",0) }
+	}
+	
+	if ($UserSet) {
+		$newrule.AccessProperties.UserSets.RemoveAll()
+		$newrule.AccessProperties.UserSets.Add($UserSet,([int][IncludeStatus]::$IncludeStatus))
 	}
 	
 	return $newrule
