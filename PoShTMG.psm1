@@ -383,13 +383,23 @@ function New-TMGWebPublishingRule {
 }
 
 function Move-TMGRule {
+	<#
+	.SYNOPSIS
 	
+	.DESCRIPTION
+	
+	.EXAMPLE
+	
+	.PARAMETER Name
+	
+#>
 	Param( 
-		[string]$Name,
-		$TMGWebPublishingRule,
-		
-		[switch]$Up,
-		[switch]$Down
+		[parameter(Mandatory=$true,ParameterSetName = "Name")] [string]$Name,
+		[parameter(Mandatory=$true,ParameterSetName = "Rule")] $TMGWebPublishingRule,
+		[parameter(Mandatory=$true,ParameterSetName = "Up")][parameter(ParameterSetName = "Name")][parameter(ParameterSetName = "Rule")] [switch]$Up,
+		[parameter(Mandatory=$true,ParameterSetName = "Down")][parameter(ParameterSetName = "Name")][parameter(ParameterSetName = "Rule")] [switch]$Down,
+		#[parameter(Mandatory=$false,ParameterSetName = "Up")][parameter(ParameterSetName = "Down")] [int]$Number =1
+
 		
 #		[int]$Position,		#Position will determine correct number of MoveUp() or MoveDown() to get to the desired position
 #		[switch]$Top,		#Top 			""					""
@@ -400,12 +410,8 @@ function Move-TMGRule {
 
 	)
 	
-	if ((-Not $TMGWebPublishingRule) -And (-Not $Name)) {
-		Throw "You must provide either -TMGWebPublishingRule or -Name"
-	}
-	elseif (($TMGWebPublishingRule) -And ($Name)) {
-		Throw "You must not provide BOTH -TMGWebPublishingRule and -Name"
-	}
+	#if ((-Not $TMGWebPublishingRule) -And (-Not $Name)) { Throw "You must provide either -TMGWebPublishingRule or -Name" }
+	#elseif (($TMGWebPublishingRule) -And ($Name)) { Throw "You must not provide BOTH -TMGWebPublishingRule and -Name" }
 	
 	if (-not($PolicyRules)) {
 		$fpcroot = New-Object -ComObject fpc.root
