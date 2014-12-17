@@ -401,10 +401,10 @@ function Move-TMGRule {
 	)
 	
 	if ((-Not $TMGWebPublishingRule) -And (-Not $Name)) {
-		Throw "You must provide -TMGWebPublishingRule or -Name"
+		Throw "You must provide either -TMGWebPublishingRule or -Name"
 	}
 	elseif (($TMGWebPublishingRule) -And ($Name)) {
-		Throw "You must not provide both -TMGWebPublishingRule and -Name"
+		Throw "You must not provide BOTH -TMGWebPublishingRule and -Name"
 	}
 	
 	if (-not($PolicyRules)) {
