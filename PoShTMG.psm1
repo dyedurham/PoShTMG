@@ -234,32 +234,32 @@ function New-TMGWebPublishingRule {
 	## APPLY ACCESS POLICY IF SPECIFIED
 	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
 	
-	if ($SourceNetwork) {
+	if ($SourceNetworks) {
 		foreach ($src in ([array]$SourceNetworks -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
 				}
 		
-	if ($SourceComputerSet) {
+	if ($SourceComputerSets) {
 		foreach ($src in ([array]$SourceComputerSets -split ",")) {
 				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
 				}
 	
-	if ($SourceComputer) {
+	if ($SourceComputers) {
 		foreach ($src in ([array]$SourceComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$src",0)}
 				}
 	
-	if ($ExcludeNetwork) {
+	if ($ExcludeNetworks) {
 		foreach ($exc in ([array]$ExcludeNetworks -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$exc",1)}
 				}
 	
-	if ($ExcludeComputerSet) {
+	if ($ExcludeComputerSets) {
 		foreach ($exc in ([array]$ExcludeComputerSets -split ",")) {
 				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1)}
 				}
 	
-	if ($ExcludeComputer) {
+	if ($ExcludeComputers) {
 		foreach ($exc in ([array]$ExcludeComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
 				}
