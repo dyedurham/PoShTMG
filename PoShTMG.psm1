@@ -371,8 +371,7 @@ function New-TMGAccessRule {
 	
 	if ($ProtocolNames) {
 		foreach ($prt in ([array]$ProtocolNames -split ",")) {
-				$newrule.AccessProperties.SpecifiedProtocols.Add("$prt",0)
-		}
+				$newrule.AccessProperties.SpecifiedProtocols.Add("$prt",0) }
 	}
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
@@ -448,6 +447,14 @@ param
 }
 
 function New-TMGComputerSet {
+<#
+	.SYNOPSIS
+	Adds a TMG Computer Set with the specified name.
+	.DESCRIPTION
+	Uses COM to create the TMG Computer Set on the array that this TMG server is a member of, with the specified name.
+	.EXAMPLE
+	New-TMGComputerSet -Name MySet
+#>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name
 	)
