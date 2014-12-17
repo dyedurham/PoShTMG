@@ -58,13 +58,21 @@ Add-Type -TypeDefinition @"
 # 6 = fpcDelegationKerberosConstrained
 Add-Type -TypeDefinition @"
 	[System.Flags] public enum CredentialsDelegation {
-		NoneClientMay  = 0,				
-		NoneClientCannot  = 1,			
-		RSASecurID  = 2,				
-		Basic = 3,						
-		NTLM = 4,						
-		Negotiate = 5,					
-		Kerberos = 6					
+		NoneClientMay  = 0,
+		NoneClientCannot  = 1,
+		RSASecurID  = 2,
+		Basic = 3,
+		NTLM = 4,
+		Negotiate = 5,
+		Kerberos = 6
+	}
+"@
+
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum ProtocolSelectionType {
+		All  = 0,
+		Selected  = 1,
+		AllExceptSelected  = 2
 	}
 "@
 
@@ -117,7 +125,7 @@ function New-TMGWebPublishingRule {
 	.SYNOPSIS
 	Creates a new TMG Web Publishing Rule.
 	.DESCRIPTION
-	Uses COM to create the TMG Web Publishing Rules on the array that this TMG server is a member of.
+	Uses COM to create the TMG Web Publishing Rule on the array that this TMG server is a member of.
 
 	Parameter names match the option name in the GUI Web Publishing Rule Properties dialog where possible, others have been added to parameter help.
 	Run Get-Help New-TMGWebPublishingRule -Full
@@ -309,12 +317,42 @@ param
 }
 
 function New-TMGAccessRule {
+<#
+	.SYNOPSIS
+	Creates a new TMG Access Rule.
+	.DESCRIPTION
+	Uses COM to create the TMG Access Rule on the array that this TMG server is a member of.
+
+	Parameter names match the option name in the GUI Access Rule Properties dialog where possible, others have been added to parameter help.
+	Run Get-Help New-TMGAccessRule -Full
+	.PARAMETER ProtocolNames
+	A comma separated list of protocol object names.
+	.PARAMETER SourceNetwork
+	A comma separated list of network objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER SourceComputerSet
+	A comma separated list of computer set objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER SourceComputer
+	A comma separated list of computer objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER ExcludeNetwork
+	A comma separated list of network objects to add to the Exceptions box on the From tab.
+	.PARAMETER ExcludeComputerSet
+	A comma separated list of computer set objects to add to the Exceptions box on the From tab.
+	.PARAMETER ExcludeComputer
+	A comma separated list of computer objects to add to the Exceptions box on the From tab.
+	.EXAMPLE
+	New-TMGAccessRule -Name Test -Action Allow -ServerHostName myinternalserver -ServerIP 192.168.1.1 -WebListener MyWL -PublicNames www.mysite.com,www.awesome.com
+#>
 	Param(
-		[parameter(Mandatory=$true)] [string]$Name,
-		[ValidateSet("Allow","Deny")][string]$Action,
-		[int]$ProtocolSelectionMethod = 1,
-		[string]$ProtocolName,
-		[string]$AppliedComputerSet
+		[parameter(Mandatory=$true)][string]$Name,
+		[parameter(Mandatory=$true)][ValidateSet("Allow","Deny")][string]$Action,
+		[ValidateSet("All","Selected","AllExceptSelected")][string]$ProtocolSelectionMethod = "Selected",
+		[string]$ProtocolNames,
+		[string]$SourceNetwork,
+		[string]$ExcludeNetwork,
+		[string]$SourceComputerSet,
+		[string]$ExcludeComputerSet,
+		[string]$SourceComputer,
+		[string]$ExcludeComputer
 	)
 
 	if (-not($PolicyRules)) {
@@ -329,10 +367,46 @@ function New-TMGAccessRule {
 	catch { }
 
 	$newrule = $PolicyRules.AddAccessRule("$Name")
-	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
-	$newrule.AccessProperties.ProtocolSelectionMethod = $ProtocolSelectionMethod
-	$newrule.AccessProperties.SpecifiedProtocols.Add("$ProtocolName",0)
-	$newrule.SourceSelectionIPs.ComputerSets.Add("$AppliedComputerSet",0)
+	$newrule.Action = [int][PolicyRuleActions]::$Action
+	$newrule.AccessProperties.ProtocolSelectionMethod = [int][ProtocolSelectionType]::$ProtocolSelectionMethod
+	
+	if ($ProtocolNames) {
+		foreach ($prt in ([array]$ProtocolNames -split ",")) {
+				$newrule.AccessProperties.SpecifiedProtocols.Add("$prt",0)
+				}
+	
+	## APPLY ACCESS POLICY IF SPECIFIED
+	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
+	
+	if ($SourceNetwork) {
+		foreach ($src in ([array]$SourceNetwork -split ",")) {
+				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
+				}
+		
+	if ($SourceComputerSet) {
+		foreach ($src in ([array]$SourceComputerSet -split ",")) {
+				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
+				}
+	
+	if ($SourceComputer) {
+		foreach ($src in ([array]$SourceComputer -split ",")) {
+				$newrule.SourceSelectionIPs.Computers.Add("$src",0)}
+				}
+	
+	if ($ExcludeNetwork) {
+		foreach ($exc in ([array]$ExcludeNetwork -split ",")) {
+				$newrule.SourceSelectionIPs.Networks.Add("$exc",1)}
+				}
+	
+	if ($ExcludeComputerSet) {
+		foreach ($exc in ([array]$ExcludeComputerSet -split ",")) {
+				$newrule.SourceSelectionIPs.ComputerSets.Add("$exc",1)}
+				}
+	
+	if ($ExcludeComputer) {
+		foreach ($exc in ([array]$ExcludeComputer -split ",")) {
+				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
+				}
 
 	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
 }
