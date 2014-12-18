@@ -385,11 +385,11 @@ function New-TMGWebPublishingRule {
 function Move-TMGRule {
 	<#
 	.SYNOPSIS
-	
+	Moves (changes the order) of a TMG Rule
 	.DESCRIPTION
 	
 	.EXAMPLE
-	
+	Move-TMGRule -Name "Web Publishing Rule 1" -Up
 	.PARAMETER Name
 	
 #>
@@ -410,9 +410,10 @@ function Move-TMGRule {
 
 	)
 	
-	if ((-Not $Rule) -And (-Not $Name)) { Throw "You must provide either -TMGWebPublishingRule or -Name" }
+	if ((-Not $Rule) -And (-Not $Name)) { Throw "You must provide either -Rule or -Name" }
+	if ((-Not $Up) -And (-Not $Down)) { Throw "You must provide either -Up or -Down" }
 		
-	if (-not($PolicyRules)) {
+	if (-Not($PolicyRules)) {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
 		$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
