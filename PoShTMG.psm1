@@ -515,7 +515,8 @@ function New-TMGAccessRule {
 		[string]$SourceComputerSet,
 		[string]$ExcludeComputerSet,
 		[string]$SourceComputer,
-		[string]$ExcludeComputer
+		[string]$ExcludeComputer,
+		[string]$DestinationNetwork
 	)
 
 	if (-not($PolicyRules)) {
@@ -564,6 +565,10 @@ function New-TMGAccessRule {
 	if ($ExcludeComputer) {
 		foreach ($exc in ([array]$ExcludeComputer -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$exc",1) }
+	}
+	
+	if ($DestinationNetwork) {
+		$newrule.AccessProperties.DestinationSelectionIPs.Networks.Add($DestinationNetwork, 0)
 	}
 	
 	if ($ProtocolNames) {
