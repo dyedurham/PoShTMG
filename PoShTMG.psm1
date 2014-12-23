@@ -265,7 +265,6 @@ function New-TMGWebPublishingRule {
 		[string]$ServerIP,
 		[string]$PublicNames,
 		[string]$DeniedRuleRedirectURL,
-		[string]$LogoffURL,
 		[string]$SourceNetworks,
 		[string]$ExcludeNetworks,
 		[string]$SourceComputerSets,
@@ -351,10 +350,6 @@ function New-TMGWebPublishingRule {
 	if ($ExcludeComputers) {
 		foreach ($exc in ([array]$ExcludeComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
-	}
-	
-	if ($LogoffURL) {
-		$newrule.WebPublishingProperties.LogoffURL = $LogoffURL
 	}
 	
 	if ($PublicNames) {
