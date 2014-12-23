@@ -272,6 +272,7 @@ function New-TMGWebPublishingRule {
 		[string]$ExcludeComputerSets,
 		[string]$SourceComputers,
 		[string]$ExcludeComputers,
+		[string]$LogoffURL,
 		[string]$InternalPathMapping,
 		[string]$ExternalPathMapping,
 		[bool]$SameAsInternalPath,
@@ -350,6 +351,10 @@ function New-TMGWebPublishingRule {
 	if ($ExcludeComputers) {
 		foreach ($exc in ([array]$ExcludeComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$exc",1)}
+	}
+	
+	if ($LogoffURL) {
+		$newrule.WebPublishingProperties.LogoffURL = $LogoffURL
 	}
 	
 	if ($PublicNames) {
