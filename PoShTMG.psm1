@@ -923,7 +923,11 @@ function New-TMGWebListener {
 		[int]$ConnectionTimeout,
 		[bool]$UnlimitedNumberOfConnections,
 		[bool]$SSOEnabled = 0,
-		[bool]$SSLClientCertificateTimeoutEnabled
+		[bool]$SSLClientCertificateTimeoutEnabled,
+		[int]$FormAuthenticationPublicTimeOut,
+		[int]$FormAuthenticationPrivateTimeOut,
+		[bool]$FormAuthenticationCookieValidationIgnoreIP
+
 	)
 
 	if (-not($WebListener)) {
@@ -957,6 +961,10 @@ function New-TMGWebListener {
 		HTMLForm {
 			$newlistener.Properties.AuthenticationSchemes.Add("FBA with AD",0)
 			$newlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
+			
+			if ($FormAuthenticationPublicTimeOut)  {$newlistener.Properties.FormBasedAuthenticationProperties.SessionTimeOutForPublicComputers = $FormAuthenticationPublicTimeOut}
+			if ($FormAuthenticationPrivateTimeOut)  {$newlistener.Properties.FormBasedAuthenticationProperties.SessionTimeOutForTrustedComputers = $FormAuthenticationPrivateTimeOut}
+			$newlistener.Properties.FormBasedAuthenticationProperties.ClientIPAddressSigningEnabled = !$FormAuthenticationCookieValidationIgnoreIP	#NOT is to flip the variable to solve Double Negative. Our Parameter is named to match the GUI rather than the API which is "backwards"
 		}
 	}
 
