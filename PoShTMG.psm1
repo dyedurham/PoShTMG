@@ -305,7 +305,7 @@ function New-TMGWebPublishingRule {
 	$newrule.WebPublishingProperties.PublishedServer = $ServerIP
 	$newrule.WebPublishingProperties.LogoffURL = $LogoffURL
 	$newrule.WebPublishingProperties.SetWebListener($WebListener)
-	$newrule.WebPublishingProperties.TranslateLinks = 0
+	$newrule.WebPublishingProperties.TranslateLinks = $TranslateLinks
 	$newrule.WebPublishingProperties.CredentialsDelegationType = [int][CredentialsDelegation]::($ServerAuthentication)
 	$newrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL
 	$newrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials
