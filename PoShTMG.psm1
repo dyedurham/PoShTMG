@@ -959,6 +959,7 @@ function New-TMGWebListener {
 		}
 		HTTP { <# DEFAULT #> }
 		HTMLForm {
+			$newlistener.Properties.IntegratedWindowsAuthentication = 0
 			$newlistener.Properties.AuthenticationSchemes.Add("FBA with AD",0)
 			$newlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
 			
