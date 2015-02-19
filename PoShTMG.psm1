@@ -2,15 +2,12 @@
 ###															###
 ###  PoShTMG Module											###
 ###															###
-###  Contains the tears of DevOps Superstars:				###
 ###  Nial Francis &	Matt Parkes								###
-###															###
 ###  @ GlobalX Information Pty. Ltd. Brisbane 2014			###
 ###															###
 ###															###
 ###		NOTES												###
 ###	Need to add protocols to webpublishingrules				###
-###															###
 ###															###
 ###############################################################
 
