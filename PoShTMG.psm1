@@ -1192,6 +1192,62 @@ function Save-TMGNetworkConfiguration {
 	WaitForSync
 }
 
+function  Clear-TMGFloodMitigationConfiguration {
+<#
+	.SYNOPSIS
+	Clears the unsaved TMG Flood Mitigation Configuration settings in this session.
+#>
+	Remove-Variable -Name ConnLimit -Scope global
+}
+
+function Clear-TMGWebListener {
+<#
+	.SYNOPSIS
+	Clears the unsaved TMG Web Listeners in this session.
+#>
+	Remove-Variable -Name WebListener -Scope global
+}
+
+function Clear-TMGComputerSet {
+<#
+	.SYNOPSIS
+	Clears the unsaved TMG Computer Sets in this session.
+#>
+	Remove-Variable -Name ComputerSet -Scope global
+}
+
+function Clear-TMGRules {
+<#
+	.SYNOPSIS
+	Clears the unsaved TMG Policy Rules in this session.
+#>
+	Remove-Variable -Name PolicyRules -Scope global
+}
+
+function Clear-TMGProtocols {
+<#
+	.SYNOPSIS
+	Clears the unsaved TMG Protocols in this session.
+#>
+	Remove-Variable -Name Protocol -Scope global
+}
+
+function Clear-TMGStaticRoute {
+<#
+	.SYNOPSIS
+	Clears the unsaved TMG Static Routes in this session.
+#>
+	Remove-Variable -Name StRoute -Scope global
+}
+
+function Clear-TMGNetworkConfiguration {
+<#
+	.SYNOPSIS
+	Clears the unsaved TMG Network Configuration settings in this session.
+#>
+	Remove-Variable -Name NetworkConf -Scope global
+}
+
 function WaitForSync {
 
 	if (-not($TMGServer)) {
