@@ -8,7 +8,7 @@ PoShTMG allows you to configure a functional TMG array from a Powershell console
 ## To Install
 
 1. Create a PoShTMG directory in your Powershell Modules directory - usually 'C:\Program Files\WindowsPowerShell\Modules'.
-(hint: New-Item -Type directory -Path 'C:\Program Files\WindowsPowerShell\Modules\PoShTMG'
+(hint: New-Item -Type directory -Path 'C:\Program Files\WindowsPowerShell\Modules\PoShTMG' )
 2. Install the PoShTMG.psm1 file from here to the directory.
 
 ## Usage
