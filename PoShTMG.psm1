@@ -960,9 +960,9 @@ function New-TMGWebListener {
 			$newlistener.Properties.AuthenticationSchemes.Add("FBA with AD",0)
 			$newlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
 			
-			if ($FormAuthenticationPublicTimeOut)  {$newlistener.Properties.FormBasedAuthenticationProperties.SessionTimeOutForPublicComputers = $FormAuthenticationPublicTimeOut}
-			if ($FormAuthenticationPrivateTimeOut)  {$newlistener.Properties.FormBasedAuthenticationProperties.SessionTimeOutForTrustedComputers = $FormAuthenticationPrivateTimeOut}
-			$newlistener.Properties.FormBasedAuthenticationProperties.ClientIPAddressSigningEnabled = !$FormAuthenticationCookieValidationIgnoreIP	#NOT is to flip the variable to solve Double Negative. Our Parameter is named to match the GUI rather than the API which is "backwards"
+			if ($FormAuthenticationPublicTimeOut)  {$newlistener.Properties.FormsBasedAuthenticationProperties.SessionTimeOutForPublicComputers = $FormAuthenticationPublicTimeOut}
+			if ($FormAuthenticationPrivateTimeOut)  {$newlistener.Properties.FormsBasedAuthenticationProperties.SessionTimeOutForTrustedComputers = $FormAuthenticationPrivateTimeOut}
+			$newlistener.Properties.FormsBasedAuthenticationProperties.ClientIPAddressSigningEnabled = !$FormAuthenticationCookieValidationIgnoreIP	#NOT is to flip the variable to solve Double Negative. Our Parameter is named to match the GUI rather than the API which is "backwards"
 		}
 	}
 
