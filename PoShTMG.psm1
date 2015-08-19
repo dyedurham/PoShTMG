@@ -160,16 +160,18 @@ param
 )
 	$result = @()
 
-	$fpcroot = New-Object -ComObject fpc.root
-	$tmgarray = $fpcroot.GetContainingArray()
-	$rules = $tmgarray.ArrayPolicy.PolicyRules
+	if (-not($PolicyRules)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
+	}
 	
 	#Set $Filter to * if not set
 	if (-Not $Filter) {
 		$Filter = "*"
 	}
 	
-	ForEach ($rule in $rules) {
+	ForEach ($rule in $PolicyRules) {
 		if ($rule.Name -Like $Filter -And $rule.Type -eq [PolicyRuleTypes]::WebPublishing) {
 			$result += $rule
 		}
@@ -292,10 +294,10 @@ function New-TMGWebPublishingRule {
 		$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
 	}
 
-	try {
-	  $PolicyRules.Remove("$Name")
+	if ( $PolicyRules.Item("$Name") ) {
+		Write-Verbose "A web publishing rule named $Name already exists."
+		return $false
 	}
-	catch {	}
 	
 	$newrule = $PolicyRules.AddWebPublishingRule("$Name")
 	$newrule.WebPublishingProperties.WebSite = $ServerHostName
@@ -317,7 +319,7 @@ function New-TMGWebPublishingRule {
 	if ($InternalPathMapping) {$newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping)}
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
-	if (($SourceNetwork) -or ($SourceComputerSet) -or ($SourceComputer)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
+	if (($SourceNetworks) -or ($SourceComputerSets) -or ($SourceComputers)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
 	
 	if ($SourceNetworks) {
 		foreach ($src in ([array]$SourceNetworks -split ",")) {
@@ -377,6 +379,233 @@ function New-TMGWebPublishingRule {
 	}
 	
 	return $newrule
+}
+
+function Set-TMGWebPublishingRule {
+<#
+	.SYNOPSIS
+	Modifies a TMG Web Publishing Rule.
+	.DESCRIPTION
+	Uses COM to modify the specified TMG Web Publishing Rule on the array that this TMG server is a member of.
+	
+	Set-TMGWebPublishingRule can be executed consecutively to modify rules. Save-TMGRules must then be executed to save the changes.
+
+	Parameter names match the option name in the GUI Web Publishing Rule Properties dialog where possible, others have been added to parameter help.
+	Run Get-Help Set-TMGWebPublishingRule -Full
+	.PARAMETER ServerHostName
+	GUI Location: To tab / The rule applies to the published site.
+	.PARAMETER ServerIP
+	GUI Location: To tab / Computer name or IP address...
+	.PARAMETER ForwardOriginalHostHeader
+	GUI Location: To tab.
+	.PARAMETER PublicNames
+	A comma separated list of DNS and IP addresses specified on the Public Name tab.
+	.PARAMETER SourceNetwork
+	A comma separated list of network objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER SourceComputerSet
+	A comma separated list of computer set objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER SourceComputer
+	A comma separated list of computer objects to add to the [applies to traffic] box on the From tab.
+	.PARAMETER ExcludeNetwork
+	A comma separated list of network objects to add to the Exceptions box on the From tab.
+	.PARAMETER ExcludeComputerSet
+	A comma separated list of computer set objects to add to the Exceptions box on the From tab.
+	.PARAMETER ExcludeComputer
+	A comma separated list of computer objects to add to the Exceptions box on the From tab.
+	.PARAMETER DeniedRuleRedirectURL
+	GUI Location: Action tab / Redirect HTTP requests... box. Setting this also checks the check box and nullifying unchecks.
+	.PARAMETER InternalPathMapping
+	GUI Location: Paths tab - The Internal Path setting. NOTE: This item must be paired with either ExternalPathMapping or SameAsInternalPath.
+	.PARAMETER ExternalPathMapping
+	GUI Location: Paths tab - The External Path setting. Must be paired with InternalPathMapping.
+	.PARAMETER SameAsInternalPath
+	GUI Location: Paths tab - This option is a bool, paired with the Internal Path setting autofills ExternalPathMapping to match.
+	.PARAMETER LinkTranslationReplace
+	GUI Location: Link Translation tab / Configure / Replace. Must be paired with LinkTranslationReplaceWith.
+	.PARAMETER LinkTranslationReplaceWith
+	GUI Location: Link Translation tab / Configure / With. Must be paired with LinkTranslationReplace.
+	.PARAMETER TranslateLinks
+	GUI Location: Link Translation tab / Apply link translation...
+	.PARAMETER ServerAuthentication
+	GUI Location: Authentication Delegation tab / Method used...
+	NoneClientMay | NoneClientCannot | RSASecurID | Basic | NTLM | Negotiate | Kerberos
+	.PARAMETER ServerType
+	GUI Location: Bridging tab.
+	HTTP | HTTPS | HTTPandSSL | FTP
+	.PARAMETER HTTPRedirectPort
+	GUI Location: Bridging tab.
+	.PARAMETER SSLRedirectPort
+	GUI Location: Bridging tab.
+	.PARAMETER UserSet
+	GUI Location: Users tab.
+	Specifies a User Set object to add to the rule. This can be included or an excluded with the IncludeStatus parameter.
+	.PARAMETER IncludeStatus
+	GUI Location: Users tab.
+	Include | Exclude
+	When specified with a UserSet, this parameter specifies whether the User Set is Included or Excluded.
+	Included adds the set to the This rule applies to... list.
+	Excluded adds the set to the Exceptions list.
+	Default is Included.
+	.EXAMPLE
+	Set-TMGWebPublishingRule -Name Test -Action Deny -WebListener MyWL -PublicNames "www.mysite.com,www.awesome.com"
+#>
+	Param(
+		[parameter(Mandatory=$true)] [string]$Name,
+		[ValidateSet("Allow","Deny")][string]$Action,
+		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
+		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication,
+		[ValidateSet("Include","Exclude")][string]$IncludeStatus,
+		[string]$NewName,
+		[string]$WebListener,
+		[string]$UserSet,
+		[string]$ServerHostName,
+		[string]$ServerIP,
+		[string]$PublicNames,
+		[string]$DeniedRuleRedirectURL,
+		[string]$SourceNetworks,
+		[string]$ExcludeNetworks,
+		[string]$SourceComputerSets,
+		[string]$ExcludeComputerSets,
+		[string]$SourceComputers,
+		[string]$ExcludeComputers,
+		[string]$LogoffURL,
+		[string]$InternalPathMapping,
+		[string]$ExternalPathMapping,
+		[bool]$SameAsInternalPath,
+		[hashtable]$PathMappings,
+		[bool]$TranslateLinks,
+		[string]$LinkTranslationReplace,
+		[string]$LinkTranslationReplaceWith,
+		[bool]$Enabled,
+		[int]$SSLRedirectPort,
+		[int]$HTTPRedirectPort,
+		[switch]$ForwardOriginalHostHeader,
+		[switch]$StripDomainFromCredentials
+	)
+	
+	if (-not($PolicyRules)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
+	}
+
+	try {
+	  $modrule = $PolicyRules.Item($Name)
+	} catch {
+		Write-Verbose "Rule $Name could not be bound. Does the rule exist?"
+		return $false
+	}
+	
+	if ($NewName) { $modrule.Name = $NewName }
+	if ($Action) {$modrule.Action = [int][PolicyRuleActions]::$Action}
+	if ($SSLRedirectPort) { $modrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort }
+	if ($HTTPRedirectPort) { $modrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
+	if ($ServerType) { $modrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType }
+	if ($SameAsInternalPath -eq 1) { $ExternalPathMapping = $InternalPathMapping }
+	if ($InternalPathMapping) { $modrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping) }
+	if ($ServerHostName) { $modrule.WebPublishingProperties.WebSite = $ServerHostName }
+	if ($ServerIP) { $modrule.WebPublishingProperties.PublishedServer = $ServerIP }
+	if ($LogoffURL) { $modrule.WebPublishingProperties.LogoffURL = $LogoffURL }
+	if ($WebListener) { $modrule.WebPublishingProperties.SetWebListener($WebListener) }
+	if ($TranslateLinks) { $modrule.WebPublishingProperties.TranslateLinks = $TranslateLinks }
+	if ($ServerAuthentication) { $modrule.WebPublishingProperties.CredentialsDelegationType = [int][CredentialsDelegation]::($ServerAuthentication) }
+	if ($DeniedRuleRedirectURL) { $modrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL }
+	if ($StripDomainFromCredentials) { $modrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials }
+	if ($Enabled) { $modrule.Enabled = $Enabled }
+	if ($ForwardOriginalHostHeader) { $modrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader }
+	
+	## APPLY ACCESS POLICY IF SPECIFIED
+	if (($SourceNetworks) -or ($SourceComputerSets) -or ($SourceComputers)) { $modrule.SourceSelectionIPs.Networks.RemoveAll() }
+	
+	if ($SourceNetworks) {
+		foreach ($src in ([array]$SourceNetworks -split ",")) {
+				$modrule.SourceSelectionIPs.Networks.Add("$src",0)}
+	}
+		
+	if ($SourceComputerSets) {
+		foreach ($src in ([array]$SourceComputerSets -split ",")) {
+				$modrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
+	}
+	
+	if ($SourceComputers) {
+		foreach ($src in ([array]$SourceComputers -split ",")) {
+				$modrule.SourceSelectionIPs.Computers.Add("$src",0)}
+	}
+	
+	if ($ExcludeNetworks) {
+		foreach ($exc in ([array]$ExcludeNetworks -split ",")) {
+				$modrule.SourceSelectionIPs.Networks.Add("$exc",1)}
+	}
+	
+	if ($ExcludeComputerSets) {
+		foreach ($exc in ([array]$ExcludeComputerSets -split ",")) {
+				$modrule.SourceSelectionIPs.ComputerSets.Add("$exc",1)}
+	}
+	
+	if ($ExcludeComputers) {
+		foreach ($exc in ([array]$ExcludeComputers -split ",")) {
+				$modrule.SourceSelectionIPs.Computers.Add("$exc",1)}
+	}
+	
+	if ($PublicNames) {
+		foreach ($pnm in ([array]$PublicNames -split ",")) {
+				$modrule.WebPublishingProperties.PublicNames.Add($pnm) }
+	}
+	
+	if ($LinkTranslationReplace) {
+		$nlt = $modrule.VendorParametersSets.Add($LinkTransGUID)
+		$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
+	}
+	
+	if ($UserSet) {
+		$modrule.WebPublishingProperties.UserSets.RemoveAll()
+		$modrule.WebPublishingProperties.UserSets.Add($UserSet,([int][IncludeStatus]::$IncludeStatus))
+	}
+	
+	if ($PathMappings) {
+		ForEach ($PathMapping in $PathMappings.GetEnumerator()) {
+			if ($PathMapping.Name -eq $PathMapping.Value) {
+				$PathMappingsSame = $true
+			} else {
+				$PathMappingsSame = $false
+			}
+			$modrule.WebPublishingProperties.PathMappings.Add($PathMapping.Name,$PathMappingsSame,$PathMapping.Value)
+		}
+	}
+	
+	return $modrule
+}
+
+function Remove-TMGWebPublishingRule {
+<#
+	.SYNOPSIS
+	Deletes the specified TMG Web Publishing Rule.
+	.DESCRIPTION
+	x
+	.EXAMPLE
+	Remove-TMGWebPublishingRules -Name "Test"
+#>
+[CmdletBinding()]
+param
+(
+    [Parameter(Mandatory=$True)] [string]$Name
+)
+	$result = @()
+
+	if (-not($PolicyRules)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
+	}
+	
+	try {
+		$delrule = $PolicyRules.remove($Name)
+	} catch {
+		Write-Verbose "Rule $Name could not be bound. Does the rule exist?"
+		return $false
+	}
+	
+	return $delrule
 }
 
 function Move-TMGRule {
@@ -669,6 +898,11 @@ function Add-TMGComputerToSet {
 		$tmgarray = $fpcroot.GetContainingArray()
 		$global:ComputerSet = $tmgarray.RuleElements.ComputerSets
 	}
+	
+	if ( ($ComputerSet | where { $_.Name -eq $SetName }).Computers | where {$_.IPAddress -eq $ComputerIP } ) {
+		Write-Verbose "Element $ComputerIP exists."
+		return $null
+	}
 
 	$newcmp = $ComputerSet.item($SetName)
 	$newcmp.Computers.Add($ClientName,$ComputerIP)
@@ -704,6 +938,11 @@ function New-TMGStaticRoute {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
 		$global:StRoute = $tmgarray.StaticRoutes
+	}
+	
+	#Remove route for destination if it already exists
+	if ( $exstroute = $StRoute | where { ($_.Destination -eq $Destination) -and ($_.Subnet -eq $Mask) } ) {
+		$exstroute.remove()
 	}
 
 	$newstrt = $StRoute.Add($Destination,$Mask,"",$Gateway)
@@ -851,18 +1090,20 @@ param
 )
 	$result = @()
 
-	$fpcroot = New-Object -ComObject fpc.root
-	$tmgarray = $fpcroot.GetContainingArray()
-	$weblisteners = $tmgarray.RuleElements.WebListeners
+	if (-not($WebListener)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:WebListener = $tmgarray.RuleElements.WebListeners
+	}
 	
 	#Set $Filter to * if not set
 	if (-Not $Filter) {
 		$Filter = "*"
 	}
 	
-	ForEach ($weblistener in $weblisteners) {
-		if ($weblistener.Name -Like $Filter) {
-			$result += $weblistener
+	ForEach ($listener in $weblistener) {
+		if ($listener.Name -Like $Filter) {
+			$result += $listener
 		}
 	}
 	
@@ -918,32 +1159,31 @@ function New-TMGWebListener {
 		[int]$MaxConnections,
 		[int]$SSLClientCertificateTimeout,
 		[int]$ConnectionTimeout,
-		[bool]$UnlimitedNumberOfConnections,
+		[switch]$UnlimitedNumberOfConnections,
 		[bool]$SSOEnabled = 0,
 		[bool]$SSLClientCertificateTimeoutEnabled,
 		[int]$FormAuthenticationPublicTimeOut,
 		[int]$FormAuthenticationPrivateTimeOut,
 		[bool]$FormAuthenticationCookieValidationIgnoreIP
-
 	)
 
 	if (-not($WebListener)) {
-	$fpcroot = New-Object -ComObject fpc.root
-	$tmgarray = $fpcroot.GetContainingArray()
-	$global:WebListener = $tmgarray.RuleElements.WebListeners
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:WebListener = $tmgarray.RuleElements.WebListeners
 	}
-
-	try {
-	  $WebListener.Remove("$Name")
+	
+	if ( $WebListener.Item("$Name") ) {
+		Write-Verbose "Listener $Name already exists."
+		return
 	}
-	catch { }
 
 	$newlistener = $WebListener.Add("$Name")
 	$newlistener.Properties.TCPPort = $HTTPPort
 	$newlistener.Properties.SSOEnabled = $SSOEnabled
 	$newlistener.Properties.SSLPort = $SSLPort
 	$newlistener.Properties.SSLClientCertificateTimeoutEnabled = $SSLClientCertificateTimeoutEnabled
-		
+
 	if ($MaxConnections) { $newlistener.Properties.NumberOfConnections = $MaxConnections }
 	if ($SSLClientCertificateTimeout) { $newlistener.Properties.SSLClientCertificateTimeout = $SSLClientCertificateTimeout }
 	if ($ConnectionTimeout) { $newlistener.Properties.ConnectionTimeout = $ConnectionTimeout }
@@ -977,11 +1217,163 @@ function New-TMGWebListener {
 		$newlistener.Properties.AppliedSSLCertificates.Add($certhash,"")
 	}
 
-	if ($UnlimitedNumberOfConnections -ge 0) {
-		$newlistener.Properties.UnlimitedNumberOfConnections = $UnlimitedNumberOfConnections
+	if ($UnlimitedNumberOfConnections) {
+		$newlistener.Properties.UnlimitedNumberOfConnections = 1
 	}
 
 	return $newlistener
+}
+
+function Set-TMGWebListener {
+<#
+	.SYNOPSIS
+	Modifies a TMG Web Listener with the specified name.
+	.DESCRIPTION
+	Uses COM to modify the specified TMG Web Listener on the array that this TMG server is a member of.
+	
+	Set-TMGWebListener can be executed consecutively to modify rules. Save-TMGWebListener must then be executed to save the changes.
+	.EXAMPLE
+	Set-TMGWebListener -Name MyWL -ClientAuthentication NoAuth -ListeningIP 1.2.2.1 -HTTPPort 81 
+	.PARAMETER ClientAuthentication
+	Client Authentication Method.
+	NoAuth | IfAuthenticated | Always
+	.PARAMETER RedirectHTTPAsHTTPS
+	Disabled | IfAuthenticated | Always
+	.PARAMETER HTTPPort
+	Client connections port number.
+	If set connections are enabled on the port number.
+	Set to 0 to disable.
+	.PARAMETER SSLPort
+	Client connections port number.
+	If set connections are enabled on the port number.
+	Set to 0 to disable.
+	.PARAMETER SourceNetworkName
+	Specify the name of the network object to listen on. If not specified, the new listener will bind to the External network and listen on all IPs.
+	.PARAMETER ListeningForRequests
+	Sets the listener IP address binding type.
+	All | Default | Specified
+	All - the listener will bind to all IPs on the SourceNetworkName network.
+	Default - the default IP - eg. if load balancing is configured the VIP will be chosen.
+	Specified - the listener binds to the address specified by ListeningIP.
+	.PARAMETER ListeningIP
+	Binds the listener to a specified IP. This must be used with the SourceNetworkName set and ListeningForRequests set to Specified.
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Name,
+		[ValidateSet("NoAuth","HTTP","HTMLForm")] [string]$ClientAuthentication,
+		[ValidateSet("Disabled","IfAuthenticated","Always")][string]$RedirectHTTPAsHTTPS,
+		[ValidateSet("All","Default","Specified")][string]$ListeningForRequests,
+		[string]$NewName,
+		[string]$SourceNetworkName,
+		[string]$ListeningIP,
+		[string]$CustomFormsDirectory,
+		[string]$SSODomainNames,
+		[string]$CertThumbprint,
+		[int]$SSLPort,
+		[int]$HTTPPort = 80,
+		[int]$MaxConnections,
+		[int]$SSLClientCertificateTimeout,
+		[int]$ConnectionTimeout,
+		[switch]$UnlimitedNumberOfConnections,
+		[bool]$SSOEnabled = 0,
+		[bool]$SSLClientCertificateTimeoutEnabled,
+		[int]$FormAuthenticationPublicTimeOut,
+		[int]$FormAuthenticationPrivateTimeOut,
+		[bool]$FormAuthenticationCookieValidationIgnoreIP
+	)
+
+	if (-not($WebListener)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:WebListener = $tmgarray.RuleElements.WebListeners
+	}
+	
+	try {
+		$modlistener = $WebListener.Item($Name)
+	} catch {
+		Write-Verbose "Listener $Name cannot be bound. Does it exist?"
+		return $false
+	}
+	
+	if ($NewName) { $modlistener.Name = $NewName }
+	if ($SSLPort) { $modlistener.Properties.SSLPort = $SSLPort }
+	if ($HTTPPort) { $modlistener.Properties.TCPPort = $HTTPPort }
+	if ($UnlimitedNumberOfConnections) { $modlistener.Properties.UnlimitedNumberOfConnections = 1 }
+	if ($SSOEnabled) { $modlistener.Properties.SSOEnabled = $SSOEnabled }
+	if ($SSLClientCertificateTimeoutEnabled) { $modlistener.Properties.SSLClientCertificateTimeoutEnabled = $SSLClientCertificateTimeoutEnabled }
+	if ($MaxConnections) { $modlistener.Properties.NumberOfConnections = $MaxConnections }
+	if ($SSLClientCertificateTimeout) { $modlistener.Properties.SSLClientCertificateTimeout = $SSLClientCertificateTimeout }
+	if ($ConnectionTimeout) { $modlistener.Properties.ConnectionTimeout = $ConnectionTimeout }
+	if ($SSODomainNames) {$modlistener.Properties.SSOEnabled = 1; $modlistener.Properties.SSODomainNames.Add($SSODomainNames)}
+	if ($RedirectHTTPAsHTTPS) {$modlistener.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
+	if ($SourceNetworkName) { $modlistener.IPsOnNetworks.Add($SourceNetworkName,[int][IPSelectionMethod]::$ListeningForRequests,$ListeningIP) }
+
+	switch ($ClientAuthentication) {
+		NoAuth {
+			$modlistener.Properties.IntegratedWindowsAuthentication = 0
+		}
+		HTTP { <# DEFAULT #> }
+		HTMLForm {
+			$modlistener.Properties.IntegratedWindowsAuthentication = 0
+			$modlistener.Properties.AuthenticationSchemes.Add("FBA with AD",0)
+			$modlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
+
+			if ($FormAuthenticationPublicTimeOut)  {$modlistener.Properties.FormsBasedAuthenticationProperties.SessionTimeOutForPublicComputers = $FormAuthenticationPublicTimeOut}
+			if ($FormAuthenticationPrivateTimeOut)  {$modlistener.Properties.FormsBasedAuthenticationProperties.SessionTimeOutForTrustedComputers = $FormAuthenticationPrivateTimeOut}
+			$modlistener.Properties.FormsBasedAuthenticationProperties.ClientIPAddressSigningEnabled = !$FormAuthenticationCookieValidationIgnoreIP	#NOT is to flip the variable to solve Double Negative. Our Parameter is named to match the GUI rather than the API which is "backwards"
+		}
+	}
+
+	if ($CertThumbprint) {
+		$certhash = (gci cert:\LocalMachine\my\$CertThumbprint).getcerthash()
+		$modlistener.Properties.AppliedSSLCertificates.Add($certhash,"")
+	}
+
+	return $modlistener
+}
+
+function Remove-TMGWebListener {
+<#
+	.SYNOPSIS
+	Deletes a TMG Web Listener with the specified name.
+	.DESCRIPTION
+	Uses COM to delete the specified TMG Web Listener on the array that this TMG server is a member of.
+	
+	Remove-TMGWebListener can be executed consecutively to delete rules. Save-TMGWebListener must then be executed to save the changes.
+	.EXAMPLE
+	Remove-TMGWebListener -Name MyWL
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Name
+	)
+
+	if (-not($WebListener)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:WebListener = $tmgarray.RuleElements.WebListeners
+	}
+	
+	# Remove rules using this listener if it already exists
+	$refrules = Get-TMGWebPublishingRules | where {$_.WebPublishingProperties.WebListenerUsed.Name -eq $Name}
+	
+	if ($refrules) {
+		foreach ($rule in $refrules) {
+			Remove-TMGWebPublishingRule -Name $rule.Name
+		}
+	
+		Save-TMGRules
+		
+		# Try restarting the service if there is an issue with saving rules (config is screwed) after this change
+		# Restart-Service isactrl -Force
+		# You'll need to reinitialise the objects too??
+	}
+	
+	try {
+		$delwl = $WebListener.Remove($Name)
+	}
+	catch { }
+	
+	return $delwl
 }
 
 function Add-TMGIPRangeToNetwork {
@@ -1050,7 +1442,11 @@ function Add-TMGAdapterRangeToNetwork {
 
 	$newrange = $NetworkConf.Item($NetworkName)
 	foreach ($elem in $adap.IpRanges) {
-	$newrange.IPRangeSet.Add(($elem | foreach {$_.IP_From}),($elem | foreach {$_.IP_To}))
+		try {
+			$newrange.IPRangeSet.Add(($elem | foreach {$_.IP_From}),($elem | foreach {$_.IP_To}))
+		} catch	[System.Management.Automation.RuntimeException] {
+			Write-Verbose "Object already exists"
+		}
 	}
 
 	return $newrange
@@ -1136,7 +1532,7 @@ param
 	Write-Host "`nWhen you're finished, run Save-TMGFloodMitigationConfiguration to save your changes`n"
 }
 
-function  Save-TMGFloodMitigationConfiguration {
+function Save-TMGFloodMitigationConfiguration {
 	if (-not($ConnLimit)) {throw "Nothing to save"}
 	try { $ConnLimit.Save() }
 	catch { throw $_.Exception.Message }
@@ -1150,6 +1546,7 @@ function Save-TMGWebListener {
 	catch { throw $_.Exception.Message }
 	write-host "Saving..."
 	WaitForSync
+	Clear-Variable WebListener
 }
 
 function Save-TMGComputerSet {
@@ -1166,6 +1563,7 @@ function Save-TMGRules {
 	catch { throw $_.Exception.Message }
 	write-host "Saving..."
 	WaitForSync
+	Clear-Variable PolicyRules
 }
 
 function Save-TMGProtocols {
