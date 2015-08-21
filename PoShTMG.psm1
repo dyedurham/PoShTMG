@@ -294,10 +294,12 @@ function New-TMGWebPublishingRule {
 		$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
 	}
 
-	if ( $PolicyRules.Item("$Name") ) {
-		Write-Verbose "A web publishing rule named $Name already exists."
-		return $false
-	}
+	try {
+		if ( $PolicyRules.Item("$Name") ) {
+			Write-Verbose "A web publishing rule named $Name already exists."
+			return
+		}
+	} catch {}
 	
 	$newrule = $PolicyRules.AddWebPublishingRule("$Name")
 	$newrule.WebPublishingProperties.WebSite = $ServerHostName
@@ -493,7 +495,7 @@ function Set-TMGWebPublishingRule {
 	  $modrule = $PolicyRules.Item($Name)
 	} catch {
 		Write-Verbose "Rule $Name could not be bound. Does the rule exist?"
-		return $false
+		return
 	}
 	
 	if ($NewName) { $modrule.Name = $NewName }
@@ -602,7 +604,7 @@ param
 		$delrule = $PolicyRules.remove($Name)
 	} catch {
 		Write-Verbose "Rule $Name could not be bound. Does the rule exist?"
-		return $false
+		return
 	}
 	
 	return $delrule
@@ -901,7 +903,7 @@ function Add-TMGComputerToSet {
 	
 	if ( ($ComputerSet | where { $_.Name -eq $SetName }).Computers | where {$_.IPAddress -eq $ComputerIP } ) {
 		Write-Verbose "Element $ComputerIP exists."
-		return $null
+		return
 	}
 
 	$newcmp = $ComputerSet.item($SetName)
@@ -1173,10 +1175,12 @@ function New-TMGWebListener {
 		$global:WebListener = $tmgarray.RuleElements.WebListeners
 	}
 	
-	if ( $WebListener.Item("$Name") ) {
-		Write-Verbose "Listener $Name already exists."
-		return
-	}
+	try {
+		if ( $WebListener.Item("$Name") ) {
+			Write-Verbose "Listener $Name already exists."
+			return
+		}
+	} catch {}
 
 	$newlistener = $WebListener.Add("$Name")
 	$newlistener.Properties.TCPPort = $HTTPPort
@@ -1292,7 +1296,7 @@ function Set-TMGWebListener {
 		$modlistener = $WebListener.Item($Name)
 	} catch {
 		Write-Verbose "Listener $Name cannot be bound. Does it exist?"
-		return $false
+		return
 	}
 	
 	if ($NewName) { $modlistener.Name = $NewName }
