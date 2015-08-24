@@ -79,6 +79,15 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#FpcPublishedServerApplication
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum PublishedServerApplication {
+		GeneralWebServer = 0,
+		ExchangeServer = 1,
+		SharePointServer = 2
+	}
+"@
+
 #FpcUDPConnectionDirectionType
 # fpcReceiveOnly = 0
 # fpcSendOnly = 1
@@ -231,6 +240,13 @@ function New-TMGWebPublishingRule {
 	.PARAMETER ServerType
 	GUI Location: Bridging tab.
 	HTTP | HTTPS | HTTPandSSL | FTP
+	.PARAMETER ServerApplication
+	GUI Location: Firewall Policy > New context menu - Choice of:
+	Web Site Publishing Rule...
+	Exchange Web Client Access Publishing Rule...
+	SharePoint Site Publishing Rule...
+	GeneralWebServer | ExchangeServer | SharePointServer
+	Default is GeneralWebServer.
 	.PARAMETER HTTPRedirectPort
 	GUI Location: Bridging tab.
 	.PARAMETER SSLRedirectPort
@@ -257,6 +273,7 @@ function New-TMGWebPublishingRule {
 		[parameter(Mandatory=$true)][ValidateSet("Allow","Deny")][string]$Action,
 		[parameter(Mandatory=$true)] [string]$WebListener,
 		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
+		[ValidateSet("GeneralWebServer","ExchangeServer","SharePointServer")][string]$ServerApplication,
 		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication = "NTLM",
 		[ValidateSet("Include","Exclude")][string]$IncludeStatus = "Include",
 		[string]$UserSet,
@@ -317,6 +334,7 @@ function New-TMGWebPublishingRule {
 	if ($HTTPRedirectPort) { $newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
 	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
 	if ($ServerType) {$newrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType}
+	if ($ServerApplication) {$newrule..WebPublishingProperties.PublishedServerApplication = [int][PublishedServerApplication]::$ServerApplication}
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
 	if ($InternalPathMapping) {$newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping)}
 	
@@ -457,6 +475,7 @@ function Set-TMGWebPublishingRule {
 		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
 		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication,
 		[ValidateSet("Include","Exclude")][string]$IncludeStatus,
+		[ValidateSet("GeneralWebServer","ExchangeServer","SharePointServer")][string]$ServerApplication,
 		[string]$NewName,
 		[string]$WebListener,
 		[string]$UserSet,
@@ -503,6 +522,7 @@ function Set-TMGWebPublishingRule {
 	if ($SSLRedirectPort) { $modrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort }
 	if ($HTTPRedirectPort) { $modrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
 	if ($ServerType) { $modrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType }
+	if ($ServerApplication) {$modrule..WebPublishingProperties.PublishedServerApplication = [int][PublishedServerApplication]::$ServerApplication}
 	if ($SameAsInternalPath -eq 1) { $ExternalPathMapping = $InternalPathMapping }
 	if ($InternalPathMapping) { $modrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping) }
 	if ($ServerHostName) { $modrule.WebPublishingProperties.WebSite = $ServerHostName }
@@ -754,9 +774,11 @@ function New-TMGAccessRule {
 	}
 
 	try {
-		$PolicyRules.Remove("$Name")
-	}
-	catch { }
+		if ( $PolicyRules.Item("$Name") ) {
+			Write-Verbose "An access rule named $Name already exists."
+			return
+		}
+	} catch {}
 
 	$newrule = $PolicyRules.AddAccessRule("$Name")
 	$newrule.Action = [int][PolicyRuleActions]::$Action
