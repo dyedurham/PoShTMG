@@ -334,7 +334,7 @@ function New-TMGWebPublishingRule {
 	if ($HTTPRedirectPort) { $newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
 	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
 	if ($ServerType) {$newrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType}
-	if ($ServerApplication) {$newrule..WebPublishingProperties.PublishedServerApplication = [int][PublishedServerApplication]::$ServerApplication}
+	if ($ServerApplication) {$newrule.WebPublishingProperties.PublishedServerApplication = [int][PublishedServerApplication]::$ServerApplication}
 	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
 	if ($InternalPathMapping) {$newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping)}
 	
@@ -377,13 +377,9 @@ function New-TMGWebPublishingRule {
 	}
 	
 	if ($LinkTranslationReplace) {
-		<#try {
-			$nlt = $newrule.VendorParametersSets.Item($LinkTransGUID)
-		} catch {
-			$nlt = $newrule.VendorParametersSets.Add($LinkTransGUID)
-		}#>
 		$nlt = $newrule.VendorParametersSets.Add($LinkTransGUID)
 		$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
+		#$nlt.Save()
 	}
 	
 	if ($UserSet) {
@@ -522,7 +518,7 @@ function Set-TMGWebPublishingRule {
 	if ($SSLRedirectPort) { $modrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort }
 	if ($HTTPRedirectPort) { $modrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
 	if ($ServerType) { $modrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType }
-	if ($ServerApplication) {$modrule..WebPublishingProperties.PublishedServerApplication = [int][PublishedServerApplication]::$ServerApplication}
+	if ($ServerApplication) {$modrule.WebPublishingProperties.PublishedServerApplication = [int][PublishedServerApplication]::$ServerApplication}
 	if ($SameAsInternalPath -eq 1) { $ExternalPathMapping = $InternalPathMapping }
 	if ($InternalPathMapping) { $modrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping) }
 	if ($ServerHostName) { $modrule.WebPublishingProperties.WebSite = $ServerHostName }
@@ -575,8 +571,14 @@ function Set-TMGWebPublishingRule {
 	}
 	
 	if ($LinkTranslationReplace) {
+		try {
+			$nlt = $modrule.VendorParametersSets.Add($LinkTransGUID)
+			$nlt = $modrule.VendorParametersSets.Item($LinkTransGUID)
+		} catch {}
+		
 		$nlt = $modrule.VendorParametersSets.Add($LinkTransGUID)
 		$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
+		#$nlt.Save()
 	}
 	
 	if ($UserSet) {
