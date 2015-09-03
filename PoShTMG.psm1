@@ -2,14 +2,18 @@
 ###															###
 ###  PoShTMG Module											###
 ###															###
+###	 Powershell interface for administering and automating	###
+###	 Microsoft Forefront Threat Management Gateway			###
+###															###
+###	 Original Authors:										###
 ###  Nial Francis &	Matt Parkes								###
 ###  @ GlobalX Information Pty. Ltd. Brisbane 2014			###
 ###															###
 ###															###
-###		NOTES												###
-###	Need to add protocols to webpublishingrules				###
-###															###
 ###############################################################
+
+## TODO
+# Need to add protocols to webpublishingrules
 
 ########	TYPE DEFINITIONS
 
@@ -344,9 +348,9 @@ function New-TMGWebPublishingRule {
 			$TranslateLinks = 1
 			$LinkTranslationOptions = 'EscapeColon'
 			if (-not($LogoffURL)) { $LogoffURL = '/_layouts/SignOut.aspx' }
-			$ForwardOriginalHostHeader = 1
+			$ForwardOriginalHostHeader = $true
 			$AllPublicNames = 0
-				
+			
 			$splt = $newrule.VendorParametersSets.Add($LinkTransGUID)
 			foreach ($pnm in ([array]$PublicNames -split ",")) {
 				$splt.Value("http:\/\/$pnm") = "https:\/\/$pnm"
@@ -548,7 +552,7 @@ function Set-TMGWebPublishingRule {
 		[bool]$Enabled,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
-		[switch]$ForwardOriginalHostHeader,
+		[bool]$ForwardOriginalHostHeader,
 		[switch]$StripDomainFromCredentials
 	)
 	
@@ -582,7 +586,9 @@ function Set-TMGWebPublishingRule {
 	if ($DeniedRuleRedirectURL) { $modrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL }
 	if ($StripDomainFromCredentials) { $modrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials }
 	if ($Enabled) { $modrule.Enabled = $Enabled }
-	if ($ForwardOriginalHostHeader) { $modrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader }
+	
+	if ($PSBoundParameters.ContainsKey('ForwardOriginalHostHeader')) { $modrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader }
+	##TODO ^^ use this for all bools, at least as they arent set if set to 0
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
 	if (($SourceNetworks) -or ($SourceComputerSets) -or ($SourceComputers)) { $modrule.SourceSelectionIPs.Networks.RemoveAll() }
@@ -625,10 +631,9 @@ function Set-TMGWebPublishingRule {
 	if ($LinkTranslationReplace) {
 		try {
 			$nlt = $modrule.VendorParametersSets.Add($LinkTransGUID)
-			$nlt = $modrule.VendorParametersSets.Item($LinkTransGUID)
 		} catch {}
 		
-		$nlt = $modrule.VendorParametersSets.Add($LinkTransGUID)
+		$nlt = $modrule.VendorParametersSets.Item($LinkTransGUID)
 		$nlt.Value($LinkTranslationReplace) = $LinkTranslationReplaceWith
 		#$nlt.Save()
 	}
@@ -1733,10 +1738,21 @@ function WaitForSync {
 		$global:TMGServer = $fpcroot.GetContainingServer()
 	}
 
-	sleep 15
-	do {write-host "Waiting for sync...";sleep 10;$TMGServer.DistributionStatus.Refresh()}
-	while ($TMGServer.DistributionStatus.Status -ne 2)
-	write-host "Configuration synced!"
+	sleep 10
+	Write-Host "Waiting for sync..."
+	$synctries = 0
+	do {
+		$synctries++
+		$TMGServer.DistributionStatus.Refresh()
+		sleep 3
+	}
+	while ( ($TMGServer.DistributionStatus.Status -ne 2) -and ($synctries -lt 100) )
+	
+	if ($synctries -lt 100) {
+		Write-Host "Configuration synced!"
+	} else {
+		Throw "The TMG Update timed out."
+	}
 }
 
 export-modulemember *-*
