@@ -79,15 +79,6 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
-#FpcPublishedServerApplication
-Add-Type -TypeDefinition @"
-	[System.Flags] public enum PublishedServerApplication {
-		GeneralWebServer = 0,
-		ExchangeServer = 1,
-		SharePointServer = 2
-	}
-"@
-
 #FpcUDPConnectionDirectionType
 # fpcReceiveOnly = 0
 # fpcSendOnly = 1
@@ -135,6 +126,15 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#FpcLinkTranslationOptions
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum LinkTranslationOptions {
+		NoOptionsOn = 0x00000000,
+		EscapeColon = 0x00000001,
+		AllowTranslationOfPartialLinks = 0x00000002
+	}
+"@
+
 #FpcIncludeStatus
 Add-Type -TypeDefinition @"
 	[System.Flags] public enum IncludeStatus {
@@ -147,6 +147,8 @@ Add-Type -TypeDefinition @"
 
 #LINK TRANSLATION MAPPING GUID
 Set-Variable LinkTransGUID -option Constant -value "{3563FFF5-DF93-40eb-ABC3-D24B5F14D8AA}"
+
+Set-Variable SharePointXML -option Constant -value '<Configuration BlockExecutables="false" ViaHeaderAction="0" NewViaHeaderValue="" ServerHeaderAction="0" NewServerHeaderValue="" MaxRequestBodyLen="107374182400"><UrlValidation NormalizeBeforeScan="true" VerifyNormalization="false" AllowHighBitCharacters="true" BlockDotInPath="false" MaxLength="10240" MaxQueryLength="10240"><Extensions AllowCondition="0"/></UrlValidation><Verbs AllowCondition="0"/><RequestHeaders/><ResponseHeaders/><DeniedSignatures/></Configuration>'
 
 ########	FUNCTIONS AND MAGIC
 ####		(DON'T CHANGE THIS STUFF)
@@ -162,11 +164,10 @@ function Get-TMGWebPublishingRules {
 	.PARAMETER Filter
 	The string you want to filter on. Leave blank or don't specify for no filtering.
 #>
-[CmdletBinding()]
-param
-(
-    [Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
-)
+	[CmdletBinding()]param(
+		[Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
+	)
+	
 	$result = @()
 
 	if (-not($PolicyRules)) {
@@ -206,7 +207,11 @@ function New-TMGWebPublishingRule {
 	GUI Location: To tab / Computer name or IP address...
 	.PARAMETER ForwardOriginalHostHeader
 	GUI Location: To tab.
+	.PARAMETER AllPublicNames
+	GUI Location: Public Names tab / All requests.
+	Boolean. Sets the rule to respond to all requested host names.
 	.PARAMETER PublicNames
+	GUI Location: Public Names tab / Requests to the following Web sites.
 	A comma separated list of DNS and IP addresses specified on the Public Name tab.
 	.PARAMETER SourceNetwork
 	A comma separated list of network objects to add to the [applies to traffic] box on the From tab.
@@ -227,7 +232,7 @@ function New-TMGWebPublishingRule {
 	.PARAMETER ExternalPathMapping
 	GUI Location: Paths tab - The External Path setting. Must be paired with InternalPathMapping.
 	.PARAMETER SameAsInternalPath
-	GUI Location: Paths tab - This option is a bool, paired with the Internal Path setting autofills ExternalPathMapping to match.
+	GUI Location: Paths tab - This option is a boolean, paired with the Internal Path setting autofills ExternalPathMapping to match.
 	.PARAMETER LinkTranslationReplace
 	GUI Location: Link Translation tab / Configure / Replace. Must be paired with LinkTranslationReplaceWith.
 	.PARAMETER LinkTranslationReplaceWith
@@ -247,6 +252,10 @@ function New-TMGWebPublishingRule {
 	SharePoint Site Publishing Rule...
 	GeneralWebServer | ExchangeServer | SharePointServer
 	Default is GeneralWebServer.
+	.PARAMETER AlternateAccessMapping
+	GUI Location: Firewall Policy > New context menu > SharePoint Site Publishing Rule... > Alternate Access Mapping Configuration page.
+	The switch enables SharePoint Alternate Access Mapping. This parameter is ignored if ServerApplication does not equal SharePointServer.
+	Default is disabled.
 	.PARAMETER HTTPRedirectPort
 	GUI Location: Bridging tab.
 	.PARAMETER SSLRedirectPort
@@ -276,9 +285,11 @@ function New-TMGWebPublishingRule {
 		[ValidateSet("GeneralWebServer","ExchangeServer","SharePointServer")][string]$ServerApplication,
 		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication = "NTLM",
 		[ValidateSet("Include","Exclude")][string]$IncludeStatus = "Include",
+		[ValidateSet("NoOptionsOn","EscapeColon","AllowTranslationOfPartialLinks")][string]$LinkTranslationOptions,
 		[string]$UserSet,
 		[string]$ServerHostName,
 		[string]$ServerIP,
+		[bool]$AllPublicNames,
 		[string]$PublicNames,
 		[string]$DeniedRuleRedirectURL,
 		[string]$SourceNetworks,
@@ -299,11 +310,12 @@ function New-TMGWebPublishingRule {
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
 		[switch]$ForwardOriginalHostHeader,
-		[switch]$StripDomainFromCredentials
+		[switch]$StripDomainFromCredentials,
+		[switch]$AlternateAccessMapping
 	)
 	
 	#### INPUT VALIDATION
-	if (($Enabled) -and (-not($ServerHostName)) -and (-not($PublicNames))) { throw "An enabled rule must contain a ServerHostName and at least 1 PublicNames" }
+	if (($Enabled) -and (-not($ServerHostName))) { throw "An enabled rule must contain a ServerHostName" }
 	
 	if (-not($PolicyRules)) {
 		$fpcroot = New-Object -ComObject fpc.root
@@ -319,9 +331,45 @@ function New-TMGWebPublishingRule {
 	} catch {}
 	
 	$newrule = $PolicyRules.AddWebPublishingRule("$Name")
+	
+	switch ($ServerApplication) {
+		GeneralWebServer	{ $newrule.WebPublishingProperties.PublishedServerApplication = 0 }
+		ExchangeServer		{
+			$newrule.WebPublishingProperties.PublishedServerApplication = 1
+			Write-Host "Exchange settings have not been implemented in PoShTMG yet"
+		}
+		SharePointServer	{
+			$newrule.WebPublishingProperties.PublishedServerApplication = 2
+			$newrule.WebPublishingProperties.AlternateAccessMappingConfigured = $AlternateAccessMapping
+			$TranslateLinks = 1
+			$LinkTranslationOptions = 'EscapeColon'
+			if (-not($LogoffURL)) { $LogoffURL = '/_layouts/SignOut.aspx' }
+			$ForwardOriginalHostHeader = 1
+			$AllPublicNames = 0
+				
+			$splt = $newrule.VendorParametersSets.Add($LinkTransGUID)
+			foreach ($pnm in ([array]$PublicNames -split ",")) {
+				$splt.Value("http:\/\/$pnm") = "https:\/\/$pnm"
+			}
+			
+			$newrule.WebPublishingProperties.PathMappings.Add('/_vti_inf.html*',1,'')
+			$newrule.WebPublishingProperties.PathMappings.Add('/_vti_bin/*',1,'')
+			$newrule.WebPublishingProperties.PathMappings.Add('/_upresources/*',1,'')
+			$newrule.WebPublishingProperties.PathMappings.Add('/_layouts/*',1,'')
+			$newrule.WebPublishingProperties.PathMappings.Add('/*',1,'')
+			
+			$splt = $newrule.VendorParametersSets.Add('{5e302ed5-f5d5-4fad-9b8a-01c72e1569f3}')
+			$splt.Value("AddHttpsFrontEndOn") = ''
+			
+			$splt = $newrule.VendorParametersSets.Add('{f1076e51-bbaf-48ba-a2d7-b0875211e80d}')
+			$splt.Value("XML_POLICY") = $SharePointXML
+		}
+	}
+	
 	$newrule.WebPublishingProperties.WebSite = $ServerHostName
 	$newrule.WebPublishingProperties.PublishedServer = $ServerIP
 	$newrule.WebPublishingProperties.LogoffURL = $LogoffURL
+	$newrule.WebPublishingProperties.AllPublicNames = $AllPublicNames
 	$newrule.WebPublishingProperties.SetWebListener($WebListener)
 	$newrule.WebPublishingProperties.TranslateLinks = $TranslateLinks
 	$newrule.WebPublishingProperties.CredentialsDelegationType = [int][CredentialsDelegation]::($ServerAuthentication)
@@ -332,11 +380,11 @@ function New-TMGWebPublishingRule {
 	
 	if ($SSLRedirectPort) { $newrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort }
 	if ($HTTPRedirectPort) { $newrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
-	if ($Action) {$newrule.Action = [int][PolicyRuleActions]::$Action}
-	if ($ServerType) {$newrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType}
-	if ($ServerApplication) {$newrule.WebPublishingProperties.PublishedServerApplication = [int][PublishedServerApplication]::$ServerApplication}
-	if ($SameAsInternalPath -eq 1) {$ExternalPathMapping = $InternalPathMapping}
-	if ($InternalPathMapping) {$newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping)}
+	if ($Action) { $newrule.Action = [int][PolicyRuleActions]::$Action }
+	if ($ServerType) { $newrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType }
+	if ($LinkTranslationOptions) { $newrule.WebPublishingProperties.LinkTranslationOptions = [int][LinkTranslationOptions]::$LinkTranslationOptions }
+	if ($SameAsInternalPath -eq 1) { $ExternalPathMapping = '' }
+	if ($InternalPathMapping) { $newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping) }
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
 	if (($SourceNetworks) -or ($SourceComputerSets) -or ($SourceComputers)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
@@ -389,7 +437,11 @@ function New-TMGWebPublishingRule {
 	
 	if ($PathMappings) {
 		ForEach ($PathMapping in $PathMappings.GetEnumerator()) {
-			if ($PathMapping.Name -eq $PathMapping.Value) { $PathMappingsSame = $true }  else { $PathMappingsSame = $false }
+			if ($PathMapping.Name -eq $PathMapping.Value) {
+				$PathMappingsSame = $true
+			} else {
+				$PathMappingsSame = $false
+			}
 			$newrule.WebPublishingProperties.PathMappings.Add($PathMapping.Name,$PathMappingsSame,$PathMapping.Value)
 		}
 	}
@@ -435,7 +487,7 @@ function Set-TMGWebPublishingRule {
 	.PARAMETER ExternalPathMapping
 	GUI Location: Paths tab - The External Path setting. Must be paired with InternalPathMapping.
 	.PARAMETER SameAsInternalPath
-	GUI Location: Paths tab - This option is a bool, paired with the Internal Path setting autofills ExternalPathMapping to match.
+	GUI Location: Paths tab - This option is a boolean, paired with the Internal Path setting autofills ExternalPathMapping to match.
 	.PARAMETER LinkTranslationReplace
 	GUI Location: Link Translation tab / Configure / Replace. Must be paired with LinkTranslationReplaceWith.
 	.PARAMETER LinkTranslationReplaceWith
