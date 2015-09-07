@@ -1537,6 +1537,36 @@ function Add-TMGAdapterRangeToNetwork {
 	return $newrange
 }
 
+function Set-TMGFailedLogonAttemptFix {
+<#
+	.SYNOPSIS
+	Fixes failed logon attempt logging to the TMG logger.
+	.DESCRIPTION
+	In TMG RTM:
+	"This issue occurs when an authentication attempt that is made to TMG fails. When this occurs, the request is handled as an anonymous request and will appear in the web proxy logs with the username logged as Anonymous."
+	https://support.microsoft.com/en-us/kb/2592929
+#>
+	
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$flavps = $tmgarray.VendorParametersSets
+	
+	try {
+		if ($flavps.Item("{143F5698-103B-12D4-FF34-1F34767DEabc}")) {
+			return "Set-TMGFailedLogonAttemptFix has already been applied."
+		}
+	} catch {}
+	
+	$flafix = $flavps.Add("{143F5698-103B-12D4-FF34-1F34767DEabc}")
+	$flafix.Value("LogUsernameForFailedAuthentication") = 1
+	
+	$flavps.Save()
+	write-host "Saving..."
+	WaitForSync
+	
+	return $flafix
+}
+
 function Set-TMGFloodMitigation {
 <#
 	.SYNOPSIS
