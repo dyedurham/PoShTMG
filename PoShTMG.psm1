@@ -1545,6 +1545,8 @@ function Set-TMGFailedLogonAttemptFix {
 	In TMG RTM:
 	"This issue occurs when an authentication attempt that is made to TMG fails. When this occurs, the request is handled as an anonymous request and will appear in the web proxy logs with the username logged as Anonymous."
 	https://support.microsoft.com/en-us/kb/2592929
+	
+	This fix will still return 'anonymous' on attempted authentication to disabled accounts in Active Directory.
 #>
 	
 	$fpcroot = New-Object -ComObject fpc.root
@@ -1557,11 +1559,12 @@ function Set-TMGFailedLogonAttemptFix {
 		}
 	} catch {}
 	
+	Write-Host "Executing Set-TMGFailedLogonAttemptFix"
 	$flafix = $flavps.Add("{143F5698-103B-12D4-FF34-1F34767DEabc}")
 	$flafix.Value("LogUsernameForFailedAuthentication") = 1
 	
+	Write-Host "Saving..."
 	$flavps.Save()
-	write-host "Saving..."
 	WaitForSync
 	
 	return $flafix
