@@ -1779,12 +1779,14 @@ function WaitForSync {
 		$TMGServer.DistributionStatus.Refresh()
 		sleep 3
 	}
-	while ( ($TMGServer.DistributionStatus.Status -ne 2) -and ($synctries -lt 100) )
+	while ( ($TMGServer.DistributionStatus.Status -lt 2) -and ($synctries -lt 100) )
 	
-	if ($synctries -lt 100) {
-		Write-Host "Configuration synced!"
-	} else {
-		Throw "The TMG Update timed out."
+	if ($TMGServer.DistributionStatus.Status -eq 2) {
+		Return "Configuration synced!"
+	} elseif ($synctries -eq 100) {
+		Throw "Timed out waiting for TMG to update it's configuration."
+	} elseif ($TMGServer.DistributionStatus.Status -eq 3) {
+		Throw "The sync process did not complete. This could mean the configuration is invalid - check Monitoring in the GUI console for errors."
 	}
 }
 
