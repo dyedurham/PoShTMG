@@ -1,9 +1,9 @@
-Powershell TMG Configuration Module
+PowerShell TMG Configuration Module
 =========
 
 ## Description
 
-PoShTMG allows you to configure a functional TMG array from a Powershell console on a TMG array member.
+PoShTMG allows you to configure a functional TMG array from a Powershell console on a TMG array member. This allows automated deployment of TMG configuration via PowerShell scripts.
 
 ## To Install
 
@@ -22,4 +22,4 @@ We'd love everyone and anyone to contribute!
 
 1. Check the issue list for outstanding tasks or create new ones.
 2. Send a pull request with completed code and unit/integration tests.
-3. Need help? or support getting your change through? Start a discussion in the issue and if needs be, we can take it offline from there.
+3. Need help or support getting your change through? Start a discussion in the issue and if needs be, we can take it offline from there.

@@ -1,19 +1,21 @@
 ###############################################################
 ###															###
 ###  PoShTMG Module											###
+###	 v 0.8													###
 ###															###
 ###	 Powershell interface for administering and automating	###
 ###	 Microsoft Forefront Threat Management Gateway			###
 ###															###
 ###	 Original Authors:										###
 ###  Nial Francis &	Matt Parkes								###
-###  @ GlobalX Information Pty. Ltd. Brisbane 2014			###
+###  @ GlobalX Information Pty. Ltd. Brisbane 2015			###
 ###															###
 ###															###
 ###############################################################
 
 ## TODO
 # Need to add protocols to webpublishingrules
+
 
 ########	TYPE DEFINITIONS
 
@@ -569,26 +571,24 @@ function Set-TMGWebPublishingRule {
 		return
 	}
 	
-	if ($NewName) { $modrule.Name = $NewName }
-	if ($Action) {$modrule.Action = [int][PolicyRuleActions]::$Action}
-	if ($SSLRedirectPort) { $modrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort }
-	if ($HTTPRedirectPort) { $modrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
-	if ($ServerType) { $modrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType }
-	if ($ServerApplication) {$modrule.WebPublishingProperties.PublishedServerApplication = [int][PublishedServerApplication]::$ServerApplication}
+	if ($PSBoundParameters.ContainsKey('NewName')) { $modrule.Name = $NewName }
+	if ($PSBoundParameters.ContainsKey('Action')) {$modrule.Action = [int][PolicyRuleActions]::$Action}
+	if ($PSBoundParameters.ContainsKey('SSLRedirectPort')) { $modrule.WebPublishingProperties.SSLRedirectPort = $SSLRedirectPort }
+	if ($PSBoundParameters.ContainsKey('HTTPRedirectPort')) { $modrule.WebPublishingProperties.HTTPRedirectPort = $HTTPRedirectPort }
+	if ($PSBoundParameters.ContainsKey('ServerType')) { $modrule.WebPublishingProperties.PublishedServerType = [int][PublishedServerType]::$ServerType }
+	if ($PSBoundParameters.ContainsKey('ServerApplication')) {$modrule.WebPublishingProperties.PublishedServerApplication = [int][PublishedServerApplication]::$ServerApplication}
 	if ($SameAsInternalPath -eq 1) { $ExternalPathMapping = $InternalPathMapping }
-	if ($InternalPathMapping) { $modrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping) }
-	if ($ServerHostName) { $modrule.WebPublishingProperties.WebSite = $ServerHostName }
-	if ($ServerIP) { $modrule.WebPublishingProperties.PublishedServer = $ServerIP }
-	if ($LogoffURL) { $modrule.WebPublishingProperties.LogoffURL = $LogoffURL }
-	if ($WebListener) { $modrule.WebPublishingProperties.SetWebListener($WebListener) }
-	if ($TranslateLinks) { $modrule.WebPublishingProperties.TranslateLinks = $TranslateLinks }
-	if ($ServerAuthentication) { $modrule.WebPublishingProperties.CredentialsDelegationType = [int][CredentialsDelegation]::($ServerAuthentication) }
-	if ($DeniedRuleRedirectURL) { $modrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL }
-	if ($StripDomainFromCredentials) { $modrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials }
-	if ($Enabled) { $modrule.Enabled = $Enabled }
-	
+	if ($PSBoundParameters.ContainsKey('InternalPathMapping')) { $modrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping) }
+	if ($PSBoundParameters.ContainsKey('ServerHostName')) { $modrule.WebPublishingProperties.WebSite = $ServerHostName }
+	if ($PSBoundParameters.ContainsKey('ServerIP')) { $modrule.WebPublishingProperties.PublishedServer = $ServerIP }
+	if ($PSBoundParameters.ContainsKey('LogoffURL')) { $modrule.WebPublishingProperties.LogoffURL = $LogoffURL }
+	if ($PSBoundParameters.ContainsKey('WebListener')) { $modrule.WebPublishingProperties.SetWebListener($WebListener) }
+	if ($PSBoundParameters.ContainsKey('TranslateLinks')) { $modrule.WebPublishingProperties.TranslateLinks = $TranslateLinks }
+	if ($PSBoundParameters.ContainsKey('ServerAuthentication')) { $modrule.WebPublishingProperties.CredentialsDelegationType = [int][CredentialsDelegation]::($ServerAuthentication) }
+	if ($PSBoundParameters.ContainsKey('DeniedRuleRedirectURL')) { $modrule.WebPublishingProperties.RedirectURL = $DeniedRuleRedirectURL }
+	if ($PSBoundParameters.ContainsKey('StripDomainFromCredentials')) { $modrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials }
+	if ($PSBoundParameters.ContainsKey('Enabled')) { $modrule.Enabled = $Enabled }
 	if ($PSBoundParameters.ContainsKey('ForwardOriginalHostHeader')) { $modrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader }
-	##TODO ^^ use this for all bools, at least as they arent set if set to 0
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
 	if (($SourceNetworks) -or ($SourceComputerSets) -or ($SourceComputers)) { $modrule.SourceSelectionIPs.Networks.RemoveAll() }
@@ -1380,18 +1380,18 @@ function Set-TMGWebListener {
 		return
 	}
 	
-	if ($NewName) { $modlistener.Name = $NewName }
-	if ($SSLPort) { $modlistener.Properties.SSLPort = $SSLPort }
-	if ($HTTPPort) { $modlistener.Properties.TCPPort = $HTTPPort }
-	if ($UnlimitedNumberOfConnections) { $modlistener.Properties.UnlimitedNumberOfConnections = 1 }
-	if ($SSOEnabled) { $modlistener.Properties.SSOEnabled = $SSOEnabled }
-	if ($SSLClientCertificateTimeoutEnabled) { $modlistener.Properties.SSLClientCertificateTimeoutEnabled = $SSLClientCertificateTimeoutEnabled }
-	if ($MaxConnections) { $modlistener.Properties.NumberOfConnections = $MaxConnections }
-	if ($SSLClientCertificateTimeout) { $modlistener.Properties.SSLClientCertificateTimeout = $SSLClientCertificateTimeout }
-	if ($ConnectionTimeout) { $modlistener.Properties.ConnectionTimeout = $ConnectionTimeout }
-	if ($SSODomainNames) {$modlistener.Properties.SSOEnabled = 1; $modlistener.Properties.SSODomainNames.Add($SSODomainNames)}
-	if ($RedirectHTTPAsHTTPS) {$modlistener.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
-	if ($SourceNetworkName) { $modlistener.IPsOnNetworks.Add($SourceNetworkName,[int][IPSelectionMethod]::$ListeningForRequests,$ListeningIP) }
+	if ($PSBoundParameters.ContainsKey('NewName')) { $modlistener.Name = $NewName }
+	if ($PSBoundParameters.ContainsKey('SSLPort')) { $modlistener.Properties.SSLPort = $SSLPort }
+	if ($PSBoundParameters.ContainsKey('HTTPPort')) { $modlistener.Properties.TCPPort = $HTTPPort }
+	if ($PSBoundParameters.ContainsKey('UnlimitedNumberOfConnections')) { $modlistener.Properties.UnlimitedNumberOfConnections = 1 }
+	if ($PSBoundParameters.ContainsKey('SSOEnabled')) { $modlistener.Properties.SSOEnabled = $SSOEnabled }
+	if ($PSBoundParameters.ContainsKey('SSLClientCertificateTimeoutEnabled')) { $modlistener.Properties.SSLClientCertificateTimeoutEnabled = $SSLClientCertificateTimeoutEnabled }
+	if ($PSBoundParameters.ContainsKey('MaxConnections')) { $modlistener.Properties.NumberOfConnections = $MaxConnections }
+	if ($PSBoundParameters.ContainsKey('SSLClientCertificateTimeout')) { $modlistener.Properties.SSLClientCertificateTimeout = $SSLClientCertificateTimeout }
+	if ($PSBoundParameters.ContainsKey('ConnectionTimeout')) { $modlistener.Properties.ConnectionTimeout = $ConnectionTimeout }
+	if ($PSBoundParameters.ContainsKey('SSODomainNames')) {$modlistener.Properties.SSOEnabled = 1; $modlistener.Properties.SSODomainNames.Add($SSODomainNames)}
+	if ($PSBoundParameters.ContainsKey('RedirectHTTPAsHTTPS')) {$modlistener.Properties.RedirectHTTPAsHTTPS = [int][RedirectHTTPAsHTTPS]::$RedirectHTTPAsHTTPS}
+	if ($PSBoundParameters.ContainsKey('SourceNetworkName')) { $modlistener.IPsOnNetworks.Add($SourceNetworkName,[int][IPSelectionMethod]::$ListeningForRequests,$ListeningIP) }
 
 	switch ($ClientAuthentication) {
 		NoAuth {
@@ -1403,8 +1403,8 @@ function Set-TMGWebListener {
 			$modlistener.Properties.AuthenticationSchemes.Add("FBA with AD",0)
 			$modlistener.Properties.FormsBasedAuthenticationProperties.CustomFormsDirectory = $CustomFormsDirectory
 
-			if ($FormAuthenticationPublicTimeOut)  {$modlistener.Properties.FormsBasedAuthenticationProperties.SessionTimeOutForPublicComputers = $FormAuthenticationPublicTimeOut}
-			if ($FormAuthenticationPrivateTimeOut)  {$modlistener.Properties.FormsBasedAuthenticationProperties.SessionTimeOutForTrustedComputers = $FormAuthenticationPrivateTimeOut}
+			if ($PSBoundParameters.ContainsKey('FormAuthenticationPublicTimeOut'))  {$modlistener.Properties.FormsBasedAuthenticationProperties.SessionTimeOutForPublicComputers = $FormAuthenticationPublicTimeOut}
+			if ($PSBoundParameters.ContainsKey('FormAuthenticationPrivateTimeOut'))  {$modlistener.Properties.FormsBasedAuthenticationProperties.SessionTimeOutForTrustedComputers = $FormAuthenticationPrivateTimeOut}
 			$modlistener.Properties.FormsBasedAuthenticationProperties.ClientIPAddressSigningEnabled = !$FormAuthenticationCookieValidationIgnoreIP	#NOT is to flip the variable to solve Double Negative. Our Parameter is named to match the GUI rather than the API which is "backwards"
 		}
 	}
