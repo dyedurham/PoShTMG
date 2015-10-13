@@ -1790,4 +1790,34 @@ function WaitForSync {
 	}
 }
 
+
+#CredentialsDelegation
+# 1 = fpcExportImportPasswords
+# 2 = fpcExportImportUserPermissions
+# 4 = fpcExportImportServerSpecific
+# 8 = fpcExportImportEnterpriseSpecific
+
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum ExportImportOptionalData {
+		None  = 0,
+		Passwords  = 1,
+		UserPermissions  = 2,
+		ServerSpecific  = 4,
+		EnterpriseSpecific = 8
+	}
+"@
+function Export-TMGArrayConfiguration
+{
+Param(
+   [Parameter(Mandatory=$true, position=0)] [string]$FilePath,
+   [Parameter(Mandatory=$false, position=1)] [ValidateSet("None", "Passwords", "UserPermissions", "ServerSpecific", "EnterpriseSpecific")] [string]$OptionalData = "None",
+   [Parameter(Mandatory=$false, position=2)] [string]$Password
+)
+	$OptionalDataFlags = ([int][ExportImportOptionalData]::($OptionalData))
+
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$tmgarray.ExportToFile( $FilePath, $OptionalDataFlags, $Password )	
+}
+
 export-modulemember *-*
