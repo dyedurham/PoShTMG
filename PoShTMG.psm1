@@ -427,7 +427,7 @@ function New-TMGWebPublishingRule {
 	
 	if ($PublicNames) {
 		foreach ($pnm in ([array]$PublicNames -split ",")) {
-				$newrule.WebPublishingProperties.PublicNames.Add($pnm) }
+				$newrule.WebPublishingProperties.PublicNames.Add($pnm.Trim()) }
 	}
 	
 	if ($LinkTranslationReplace) {
