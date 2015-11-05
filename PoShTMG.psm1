@@ -393,19 +393,20 @@ function New-TMGWebPublishingRule {
 	if ($InternalPathMapping) { $newrule.WebPublishingProperties.PathMappings.Add($InternalPathMapping,$SameAsInternalPath,$ExternalPathMapping) }
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
-	if (($SourceNetworks) -or ($SourceComputerSets) -or ($SourceComputers)) { $newrule.SourceSelectionIPs.Networks.RemoveAll() }
-	
 	if ($SourceNetworks) {
+		$newrule.SourceSelectionIPs.Networks.RemoveAll()
 		foreach ($src in ([array]$SourceNetworks -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
 	}
 		
 	if ($SourceComputerSets) {
+		$newrule.SourceSelectionIPs.ComputerSets.RemoveAll()
 		foreach ($src in ([array]$SourceComputerSets -split ",")) {
 				$newrule.SourceSelectionIPs.ComputerSets.Add("$src",0)}
 	}
 	
 	if ($SourceComputers) {
+		$newrule.SourceSelectionIPs.Computers.RemoveAll()
 		foreach ($src in ([array]$SourceComputers -split ",")) {
 				$newrule.SourceSelectionIPs.Computers.Add("$src",0)}
 	}
