@@ -1,7 +1,7 @@
 ###############################################################
 ###															###
 ###  PoShTMG Module											###
-###	 v 0.8													###
+###	 v 0.89													###
 ###															###
 ###	 Powershell interface for administering and automating	###
 ###	 Microsoft Forefront Threat Management Gateway			###
@@ -149,6 +149,30 @@ Add-Type -TypeDefinition @"
 	}
 "@
 
+#FpcLoadBalancingAffinityType
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum LoadBalancingAffinityType {
+		SessionCookie	= 0,
+		IP				= 1
+	}
+"@
+
+#CredentialsDelegation
+# 1 = fpcExportImportPasswords
+# 2 = fpcExportImportUserPermissions
+# 4 = fpcExportImportServerSpecific
+# 8 = fpcExportImportEnterpriseSpecific
+
+Add-Type -TypeDefinition @"
+	[System.Flags] public enum ExportImportOptionalData {
+		None  = 0,
+		Passwords  = 1,
+		UserPermissions  = 2,
+		ServerSpecific  = 4,
+		EnterpriseSpecific = 8
+	}
+"@
+
 ########	CONSTANTS
 
 #LINK TRANSLATION MAPPING GUID
@@ -251,6 +275,14 @@ function New-TMGWebPublishingRule {
 	.PARAMETER ServerType
 	GUI Location: Bridging tab.
 	HTTP | HTTPS | HTTPandSSL | FTP
+	.PARAMETER LoadBalancingAffinity
+	GUI Location: Web Farm tab / Load-Balance Mechanism.
+	SessionCookie | IP
+	Default is SessionCookie.
+	.PARAMETER LoadBalancingEnabled
+	Modifies the rule to enable TMG load balancing across multiple servers defined in a Server Farm (New-TMGServerFarm) object, which is specified by the LoadBalancingFarm parameter.
+	.PARAMETER LoadBalancingFarm
+	Adds a server farm definition to the rule. Use with the LoadBalancingEnabled parameter.
 	.PARAMETER ServerApplication
 	GUI Location: Firewall Policy > New context menu - Choice of:
 	Web Site Publishing Rule...
@@ -288,10 +320,11 @@ function New-TMGWebPublishingRule {
 		[parameter(Mandatory=$true)][ValidateSet("Allow","Deny")][string]$Action,
 		[parameter(Mandatory=$true)] [string]$WebListener,
 		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
-		[ValidateSet("GeneralWebServer","ExchangeServer","SharePointServer")][string]$ServerApplication,
+		[ValidateSet("GeneralWebServer","ExchangeServer","SharePointServer")][string]$ServerApplication = "GeneralWebServer",
 		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication = "NTLM",
 		[ValidateSet("Include","Exclude")][string]$IncludeStatus = "Include",
 		[ValidateSet("NoOptionsOn","EscapeColon","AllowTranslationOfPartialLinks")][string]$LinkTranslationOptions,
+		[ValidateSet("SessionCookie","IP")][string]$LoadBalancingAffinity = "SessionCookie",
 		[string]$UserSet,
 		[string]$ServerHostName,
 		[string]$ServerIP,
@@ -307,6 +340,7 @@ function New-TMGWebPublishingRule {
 		[string]$LogoffURL,
 		[string]$InternalPathMapping,
 		[string]$ExternalPathMapping,
+		[string]$LoadBalancingFarm,
 		[bool]$SameAsInternalPath,
 		[hashtable]$PathMappings,
 		[bool]$TranslateLinks = 0,
@@ -315,6 +349,7 @@ function New-TMGWebPublishingRule {
 		[bool]$Enabled = $true,
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
+		[switch]$LoadBalancingEnabled,
 		[switch]$ForwardOriginalHostHeader,
 		[switch]$StripDomainFromCredentials,
 		[switch]$AlternateAccessMapping
@@ -322,6 +357,7 @@ function New-TMGWebPublishingRule {
 	
 	#### INPUT VALIDATION
 	if (($Enabled) -and (-not($ServerHostName))) { throw "An enabled rule must contain a ServerHostName" }
+	if (($LoadBalancingEnabled) -and (-not($LoadBalancingFarm))) {throw "A load balancing server farm must be specified with -LoadBalancingFarm if -LoadBalancingEnabled is set."}
 	
 	if (-not($PolicyRules)) {
 		$fpcroot = New-Object -ComObject fpc.root
@@ -398,7 +434,7 @@ function New-TMGWebPublishingRule {
 		foreach ($src in ([array]$SourceNetworks -split ",")) {
 				$newrule.SourceSelectionIPs.Networks.Add("$src",0)}
 	}
-		
+
 	if ($SourceComputerSets) {
 		$newrule.SourceSelectionIPs.ComputerSets.RemoveAll()
 		foreach ($src in ([array]$SourceComputerSets -split ",")) {
@@ -451,6 +487,12 @@ function New-TMGWebPublishingRule {
 			}
 			$newrule.WebPublishingProperties.PathMappings.Add($PathMapping.Name,$PathMappingsSame,$PathMapping.Value)
 		}
+	}
+	
+	if ($LoadBalancingEnabled) {
+		$newrule.WebPublishingProperties.LoadBalancingEnabled = 1
+		$newrule.WebPublishingProperties.LoadBalancingConfig.SetServerFarm($LoadBalancingFarm)
+		$newrule.WebPublishingProperties.LoadBalancingConfig.AffinityType = [int][LoadBalancingAffinityType]::$LoadBalancingAffinity
 	}
 	
 	return $newrule
@@ -531,6 +573,7 @@ function Set-TMGWebPublishingRule {
 		[ValidateSet("NoneClientMay","NoneClientCannot","RSASecurID","Basic","NTLM","Negotiate","Kerberos")][string]$ServerAuthentication,
 		[ValidateSet("Include","Exclude")][string]$IncludeStatus,
 		[ValidateSet("GeneralWebServer","ExchangeServer","SharePointServer")][string]$ServerApplication,
+		[ValidateSet("SessionCookie","IP")][string]$LoadBalancingAffinity,
 		[string]$NewName,
 		[string]$WebListener,
 		[string]$UserSet,
@@ -547,6 +590,7 @@ function Set-TMGWebPublishingRule {
 		[string]$LogoffURL,
 		[string]$InternalPathMapping,
 		[string]$ExternalPathMapping,
+		[string]$LoadBalancingFarm,
 		[bool]$SameAsInternalPath,
 		[hashtable]$PathMappings,
 		[bool]$TranslateLinks,
@@ -556,6 +600,7 @@ function Set-TMGWebPublishingRule {
 		[int]$SSLRedirectPort,
 		[int]$HTTPRedirectPort,
 		[bool]$ForwardOriginalHostHeader,
+		[bool]$LoadBalancingEnabled,
 		[switch]$StripDomainFromCredentials
 	)
 	
@@ -590,6 +635,10 @@ function Set-TMGWebPublishingRule {
 	if ($PSBoundParameters.ContainsKey('StripDomainFromCredentials')) { $modrule.WebPublishingProperties.StripDomainFromCredentials = $StripDomainFromCredentials }
 	if ($PSBoundParameters.ContainsKey('Enabled')) { $modrule.Enabled = $Enabled }
 	if ($PSBoundParameters.ContainsKey('ForwardOriginalHostHeader')) { $modrule.WebPublishingProperties.SendOriginalHostHeader = $ForwardOriginalHostHeader }
+	if ($PSBoundParameters.ContainsKey('LoadBalancingEnabled')) { $modrule.WebPublishingProperties.LoadBalancingEnabled = $LoadBalancingEnabled }
+	
+	if ($LoadBalancingFarm) { $modrule.WebPublishingProperties.LoadBalancingConfig.SetServerFarm($LoadBalancingFarm) }
+	if ($LoadBalancingAffinity) { $modrule.WebPublishingProperties.LoadBalancingConfig.AffinityType = [int][LoadBalancingAffinityType]::$LoadBalancingAffinity }
 	
 	## APPLY ACCESS POLICY IF SPECIFIED
 	if (($SourceNetworks) -or ($SourceComputerSets) -or ($SourceComputers)) { $modrule.SourceSelectionIPs.Networks.RemoveAll() }
@@ -658,36 +707,39 @@ function Set-TMGWebPublishingRule {
 	return $modrule
 }
 
-function Remove-TMGWebPublishingRule {
+function Remove-TMGWebPublishingRule ($Name) {
+	Write-Error "Remove-TMGWebPublishingRule is deprecated. Use Remove-TMGRule instead."
+	Remove-TMGRule $Name
+}
+
+function Remove-TMGRule {
 <#
 	.SYNOPSIS
-	Deletes the specified TMG Web Publishing Rule.
-	.DESCRIPTION
-	x
+	Deletes the specified TMG firewall policy rules.
 	.EXAMPLE
-	Remove-TMGWebPublishingRules -Name "Test"
+	Remove-TMGRule -Name "Test"
 #>
 [CmdletBinding()]
 param
 (
-    [Parameter(Mandatory=$True)] [string]$Name
+    [Parameter(Mandatory=$True, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True)] [string]$Name
 )
-	$result = @()
-
-	if (-not($PolicyRules)) {
-		$fpcroot = New-Object -ComObject fpc.root
-		$tmgarray = $fpcroot.GetContainingArray()
-		$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
+	BEGIN {
+		if (-not($PolicyRules)) {
+			$fpcroot = New-Object -ComObject fpc.root
+			$tmgarray = $fpcroot.GetContainingArray()
+			$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
+		}
 	}
 	
-	try {
-		$delrule = $PolicyRules.remove($Name)
-	} catch {
-		Write-Verbose "Rule $Name could not be bound. Does the rule exist?"
-		return
+	PROCESS {
+		try {
+			$PolicyRules.remove($Name)
+		} catch {
+			Write-error $_.Exception.Message
+			break
+		}
 	}
-	
-	return $delrule
 }
 
 function Move-TMGRule {
@@ -698,8 +750,6 @@ function Move-TMGRule {
 	
 	.EXAMPLE
 	Move-TMGRule -Name "Web Publishing Rule 1" -Up
-	.PARAMETER Name
-	
 #>
 	Param( 
 		[parameter(Mandatory=$true,ParameterSetName = "Name")] [string]$Name,
@@ -743,8 +793,6 @@ function Move-TMGRule {
 	if ($Down) {
 		$global:PolicyRules.MoveDown($Rule.order)
 	}
-	
-	Write-Host "`nWhen you're finished, run Save-TMGRules to save your changes`n"
 }
 
 function Get-TMGAccessRules {
@@ -900,34 +948,132 @@ function Get-TMGComputerSets {
 	Gets the TMG Computer Sets whose names match the specified Filter.
 	.DESCRIPTION
 	Uses COM to get the TMG Computer Sets from the Array that this TMG server is a member of, which match the specified Filter.
+	
+	The filter is a string and can include a * wildcard.
+	Multiple filters may be used to return multiple results by separating the items with a comma. Therefore, a rule name containing a comma should be matched by a wildcard.
 	.EXAMPLE
 	Get-TMGComputerSets -Filter "Test *"
+	.EXAMPLE
+	Get-TMGComputerSets -Filter "Test *,Set2"
 	.PARAMETER Filter
-	The string you want to filter on. Leave blank or don't specify for no filtering.
+	The string you want to filter on. Leave blank or don't specify for no filtering, or use an exact name, wildcard or a comma-separated list for multiple results.
 #>
 [CmdletBinding()]
 param
 (
-    [Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
+    [Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True,
+	HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
 )
-	$result = @()
-
 	$fpcroot = New-Object -ComObject fpc.root
 	$tmgarray = $fpcroot.GetContainingArray()
 	$computersets = $tmgarray.RuleElements.ComputerSets
 	
 	#Set $Filter to * if not set
-	if (-Not $Filter) {
-		$Filter = "*"
+	if (-Not $Filter) {	$Filter = "*" }
+	
+	$result = ForEach ($stn in ([array]$Filter -split ",")) {
+		$computersets | Where-Object {$_.Name -like $stn}
 	}
 	
-	ForEach ($computerset in $computersets) {
-		if ($computerset.Name -Like $Filter) {
-			$result += $computerset
-		}
+	return $result | Sort-Object -Unique -Property PersistentName
+}
+
+function New-TMGServerFarm {
+<#
+	.SYNOPSIS
+	Adds a TMG Server Farm with the specified name.
+	.DESCRIPTION
+	Uses COM to create the specified TMG Server Farm on the array that this TMG server is a member of.
+	
+	New-TMGServerFarm can be executed consecutively to create new sets. Save-TMGServerFarm must then be executed to save the changes.
+	.EXAMPLE
+	New-TMGServerFarm -Name MySet
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Name
+	)
+
+	if (-not($ServerFarm)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ServerFarm = $tmgarray.RuleElements.ServerFarms
+	}
+
+	$newsf = $ServerFarm.Add($Name)
+
+	return $newsf
+}
+
+function Get-TMGServerFarms {
+	Param( 
+		[string]$Filter
+	)
+
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$ServerFarms = $tmgarray.RuleElements.ServerFarms
+
+	if (-Not $Filter) { $Filter = "*" }
+	
+	$result = ForEach ($stn in ([array]$Filter -split ",")) {
+		$ServerFarms | Where-Object {$_.Name -like $stn}
+	}
+		
+	return $result | Sort-Object -Unique -Property PersistentName
+}
+
+function Remove-TMGServerFarm {
+<#
+	.SYNOPSIS
+	Removes a TMG Server Farm with the specified name.
+	.DESCRIPTION
+	Uses COM to remove the specified TMG Server Farm on the array that this TMG server is a member of. TMG cannot delete a server farm if it is applied to a firewall policy rule.
+	
+	Remove-TMGServerFarm can be executed consecutively to create new sets. Save-TMGServerFarm must then be executed to save the changes.
+	.PARAMETER EnumerateRules
+	This switch will return web publishing rules which the server farm is assigned to. These can be inspected or piped into Remove-TMGRule.
+	.PARAMETER Force
+	This switch will force PoShTMG to automatically delete all web publishing rules which use this server farm then continue and delete the server farm object.
+	.EXAMPLE
+	Remove-TMGServerFarm -Name MySet
+	If firewall rules are using the MySet server farm, an error will be printed and the matching firewall objects are returned.
+	.EXAMPLE
+	Remove-TMGServerFarm -Name MySet -EnumerateRules | Remove-TMGRule
+	Firewall rules using the MySet server farm will be returned and piped into Remove-TMGRule. The ruleset will need to be manually saved.
+	.EXAMPLE
+	Remove-TMGServerFarm -Name MySet -Force
+	This command will delete the MySet server farm AND any firewall objects using it without confirmation.
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Name,
+		[switch]$EnumerateRules,
+		[switch]$Force
+	)
+
+	if (-not($ServerFarm)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ServerFarm = $tmgarray.RuleElements.ServerFarms
 	}
 	
-	return $result
+	$refrules = Get-TMGWebPublishingRules | where {$_.WebPublishingProperties.LoadBalancingConfig.ServerFarm.Name -eq $Name}
+	
+	if ($EnumerateRules) { return $refrules }
+	
+	if (($refrules) -and (!$Force)) {
+		Write-Error "This server farm cannot be deleted while it is used in TMG firewall policy rules. This farm is currently assigned to these rules:"
+		return $refrules
+	} elseif (($refrules) -and ($Force)) {
+		$refrules | Remove-TMGRule
+		Save-TMGRules
+	}
+	
+	try {
+		$ServerFarm.Remove($Name)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
 }
 
 function New-TMGComputerSet {
@@ -954,6 +1100,76 @@ function New-TMGComputerSet {
 	$newcs = $ComputerSet.Add($Name)
 
 	return $newcs
+}
+
+function Add-TMGServerToFarm {
+<#
+	.SYNOPSIS
+	Adds an entry to the TMG Server Farm with the specified name.
+	.DESCRIPTION
+	Uses COM to add a name/address pair to the specified TMG Server Farm on the array that this TMG server is a member of.
+	
+	Add-TMGServerToFarm can be executed consecutively add new entries. Save-TMGServerFarm must then be executed to save the changes.
+	.EXAMPLE
+	Add-TMGServerToFarm -FarmName MySet -Server MYSERVER
+	.PARAMETER Server
+	The DNS name or IP address of the server to add to the farm.
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$FarmName,
+		[parameter(Mandatory=$true)] [string]$Server
+	)
+
+	if (-not($ServerFarm)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ServerFarm = $tmgarray.RuleElements.ServerFarms
+	}
+	
+	if ( $ServerFarm.Item($FarmName).PublishedServers | where {$_.NameOrIP -eq $Server } ) {
+		Write-Verbose "Element $Server exists."
+		return
+	}
+
+	$newsvr = $ServerFarm.item($FarmName)
+	$newsvr.PublishedServers.Add($Server)
+
+	return $newsvr
+}
+
+function Remove-TMGServerFromFarm {
+<#
+	.SYNOPSIS
+	Removes an entry from the TMG Server Farm with the specified name.
+	.DESCRIPTION
+	Uses COM to remove a name/address pair to the specified TMG Server Farm on the array that this TMG server is a member of.
+	
+	Remove-TMGServerFromFarm can be executed consecutively add new entries. Save-TMGServerFarm must then be executed to save the changes.
+	.EXAMPLE
+	Remove-TMGServerFromFarm -FarmName MySet -Server MYSERVER
+	.PARAMETER Server
+	The DNS name or IP address of the server to add to the farm.
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$FarmName,
+		[parameter(Mandatory=$true)] [string]$Server
+	)
+
+	if (-not($ServerFarm)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ServerFarm = $tmgarray.RuleElements.ServerFarms
+	}
+	
+	try {
+		$rmsvr = $ServerFarm.item($FarmName)
+		$rmsvr.PublishedServers.Remove($Server)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+
+	return $rmsvr
 }
 
 function Add-TMGComputerToSet {
@@ -983,15 +1199,55 @@ function Add-TMGComputerToSet {
 		$global:ComputerSet = $tmgarray.RuleElements.ComputerSets
 	}
 	
-	if ( ($ComputerSet | where { $_.Name -eq $SetName }).Computers | where {$_.IPAddress -eq $ComputerIP } ) {
+	if ( $ComputerSet.Item($SetName).Computers | where {$_.IPAddress -eq $ComputerIP } ) {
 		Write-Verbose "Element $ComputerIP exists."
-		return
+		break
 	}
 
-	$newcmp = $ComputerSet.item($SetName)
-	$newcmp.Computers.Add($ClientName,$ComputerIP)
+	try {
+		$newcmp = $ComputerSet.item($SetName)
+		$newcmp.Computers.Add($ClientName,$ComputerIP)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
 
 	return $newcmp
+}
+
+function Remove-TMGComputerFromSet {
+<#
+	.SYNOPSIS
+	Removes an entry from the TMG Computer Set with the specified name.
+	.DESCRIPTION
+	Uses COM to remove a name/address pair from the specified TMG Computer Set on the array that this TMG server is a member of.
+	
+	Remove-TMGComputerFromSet can be executed consecutively add new entries. Save-TMGComputerSet must then be executed to save the changes.
+	.EXAMPLE
+	Remove-TMGComputerFromSet -SetName MySet -ClientName MYSERVER
+	.PARAMETER ClientName
+	Matches the Name field in the list of entries under a computer set.
+#>
+	Param(
+		[parameter(Mandatory=$true)] [string]$SetName,
+		[parameter(Mandatory=$true)] [string]$ClientName
+	)
+
+	if (-not($ComputerSet)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ComputerSet = $tmgarray.RuleElements.ComputerSets
+	}
+
+	try {
+		$rmcmp = $ComputerSet.item($SetName)
+		$rmcmp.Computers.Remove($ClientName)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+	
+	return $rmcmp
 }
 
 function New-TMGStaticRoute {
@@ -1018,7 +1274,7 @@ function New-TMGStaticRoute {
 		[int]$Metric = 256
 	)
 
-	if (-not($ComputerSet)) {
+	if (-not($StRoute)) {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
 		$global:StRoute = $tmgarray.StaticRoutes
@@ -1456,8 +1712,10 @@ function Remove-TMGWebListener {
 	
 	try {
 		$delwl = $WebListener.Remove($Name)
+	} catch {
+		Write-error $_.Exception.Message
+		break
 	}
-	catch { }
 	
 	return $delwl
 }
@@ -1651,6 +1909,19 @@ param
 	Write-Host "`nWhen you're finished, run Save-TMGFloodMitigationConfiguration to save your changes`n"
 }
 
+function Export-TMGArrayConfiguration {
+Param(
+	[Parameter(Mandatory=$true, position=0)] [string]$FilePath,
+	[Parameter(Mandatory=$false, position=1)] [ValidateSet("None", "Passwords", "UserPermissions", "ServerSpecific", "EnterpriseSpecific")] [string]$OptionalData = "None",
+	[Parameter(Mandatory=$false, position=2)] [string]$Password
+)
+	$OptionalDataFlags = ([int][ExportImportOptionalData]::($OptionalData))
+
+	$fpcroot = New-Object -ComObject fpc.root
+	$tmgarray = $fpcroot.GetContainingArray()
+	$tmgarray.ExportToFile( $FilePath, $OptionalDataFlags, $Password )	
+}
+
 function Save-TMGFloodMitigationConfiguration {
 	if (-not($ConnLimit)) {throw "Nothing to save"}
 	try { $ConnLimit.Save() }
@@ -1709,7 +1980,15 @@ function Save-TMGNetworkConfiguration {
 	WaitForSync
 }
 
-function  Clear-TMGFloodMitigationConfiguration {
+function Save-TMGServerFarm {
+	if (-not($ServerFarm)) {throw "Nothing to save"}
+	try { $ServerFarm.Save() }
+	catch { throw $_.Exception.Message }
+	write-host "Saving..."
+	WaitForSync
+}
+
+function Clear-TMGFloodMitigationConfiguration {
 <#
 	.SYNOPSIS
 	Clears the unsaved TMG Flood Mitigation Configuration settings in this session.
@@ -1765,6 +2044,16 @@ function Clear-TMGNetworkConfiguration {
 	Remove-Variable -Name NetworkConf -Scope global
 }
 
+function Clear-TMGServerFarm {
+<#
+	.SYNOPSIS
+	Clears the unsaved TMG Protocols in this session.
+#>
+	Remove-Variable -Name ServerFarm -Scope global
+}
+
+#### PRIVATE FUNCTIONS ####
+
 function WaitForSync {
 
 	if (-not($TMGServer)) {
@@ -1789,36 +2078,6 @@ function WaitForSync {
 	} elseif ($TMGServer.DistributionStatus.Status -eq 3) {
 		Throw "The sync process did not complete. This could mean the configuration is invalid - check Monitoring in the GUI console for errors."
 	}
-}
-
-
-#CredentialsDelegation
-# 1 = fpcExportImportPasswords
-# 2 = fpcExportImportUserPermissions
-# 4 = fpcExportImportServerSpecific
-# 8 = fpcExportImportEnterpriseSpecific
-
-Add-Type -TypeDefinition @"
-	[System.Flags] public enum ExportImportOptionalData {
-		None  = 0,
-		Passwords  = 1,
-		UserPermissions  = 2,
-		ServerSpecific  = 4,
-		EnterpriseSpecific = 8
-	}
-"@
-function Export-TMGArrayConfiguration
-{
-Param(
-   [Parameter(Mandatory=$true, position=0)] [string]$FilePath,
-   [Parameter(Mandatory=$false, position=1)] [ValidateSet("None", "Passwords", "UserPermissions", "ServerSpecific", "EnterpriseSpecific")] [string]$OptionalData = "None",
-   [Parameter(Mandatory=$false, position=2)] [string]$Password
-)
-	$OptionalDataFlags = ([int][ExportImportOptionalData]::($OptionalData))
-
-	$fpcroot = New-Object -ComObject fpc.root
-	$tmgarray = $fpcroot.GetContainingArray()
-	$tmgarray.ExportToFile( $FilePath, $OptionalDataFlags, $Password )	
 }
 
 export-modulemember *-*
