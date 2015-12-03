@@ -1350,8 +1350,7 @@ function Remove-TMGStaticRoute {
 	Removes an entry in the TMG Network Topology Routes list.
 #>
 	Param( 
-		[parameter(Mandatory=$true)] [string]$Destination,
-		[parameter(Mandatory=$true)] [string]$Mask
+		[parameter(Mandatory=$true)] [string]$Destination
 	)
 
 	if (-not($StRoute)) {
@@ -1360,7 +1359,7 @@ function Remove-TMGStaticRoute {
 		$global:StRoute = $tmgarray.StaticRoutes
 	}
 	
-	$exstroute = $StRoute | where { ($_.Destination -eq $Destination) -and ($_.Subnet -eq $Mask) }
+	$exstroute = $StRoute | where { ($_.Destination -eq $Destination) }
 	
 	if ($exstroute) {
 		$exstroute.remove()
