@@ -183,41 +183,57 @@ Set-Variable SharePointXML -option Constant -value '<Configuration BlockExecutab
 ########	FUNCTIONS AND MAGIC
 ####		(DON'T CHANGE THIS STUFF)
 
-function Get-TMGWebPublishingRules {
+function Get-TMGWebPublishingRules ($Name) {
+	Write-Error "Get-TMGWebPublishingRules is deprecated. Use Get-TMGRules with -Type WebPublishing instead."
+	Get-TMGRules $Name -Type WebPublishing
+}
+
+function Get-TMGAccessRules ($Name) {
+	Write-Error "Get-TMGAccessRules is deprecated. Use Get-TMGRules with -Type Access instead."
+	Get-TMGRules $Name -Type Access
+}
+
+function Remove-TMGWebPublishingRule ($Name) {
+	Write-Error "Remove-TMGWebPublishingRule is deprecated. Use Remove-TMGRule instead."
+	Remove-TMGRule $Name
+}
+
+function Get-TMGRules {
 <#
 	.SYNOPSIS
-	Gets the TMG Web Publishing Rules whose names match the specified Filter.
+	Gets the TMG Firewall Policy Rules whose names match the specified Filter.
 	.DESCRIPTION
-	Uses COM to get the TMG Web Publishing Rules from the Array that this TMG server is a member of, which match the specified Filter.
+	Uses COM to get the TMG Firewall Policy Rules from the Array that this TMG server is a member of, which match the specified Filter.
 	.EXAMPLE
-	Get-TMGWebPublishingRules -Filter "Test *"
+	Get-TMGRules -Filter "Test *"
 	.PARAMETER Filter
 	The string you want to filter on. Leave blank or don't specify for no filtering.
 #>
-	[CmdletBinding()]param(
-		[Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
+	[CmdletBinding()]
+	param(
+		[Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter,
+		[ValidateSet("Access","ServerPublishing","WebPublishing")][string]$Type
 	)
 	
-	$result = @()
-
 	if (-not($PolicyRules)) {
 		$fpcroot = New-Object -ComObject fpc.root
 		$tmgarray = $fpcroot.GetContainingArray()
 		$global:PolicyRules = $tmgarray.ArrayPolicy.PolicyRules
 	}
 	
-	#Set $Filter to * if not set
-	if (-Not $Filter) {
-		$Filter = "*"
-	}
+	if (-Not $Filter) { $Filter = "*" }
 	
-	ForEach ($rule in $PolicyRules) {
-		if ($rule.Name -Like $Filter -And $rule.Type -eq [PolicyRuleTypes]::WebPublishing) {
-			$result += $rule
+	if ($Type) {
+		$result = ForEach ($stn in ([array]$Filter -split ",")) {
+			$PolicyRules | Where-Object { ($_.Name -like $stn) -And ($_.Type -eq [PolicyRuleTypes]::$Type) }
+		}
+	} else {
+		$result = ForEach ($stn in ([array]$Filter -split ",")) {
+			$PolicyRules | Where-Object { $_.Name -like $stn }
 		}
 	}
 	
-	return $result
+	return $result | Sort-Object -Unique -Property PersistentName
 }
 
 function New-TMGWebPublishingRule {
@@ -317,7 +333,7 @@ function New-TMGWebPublishingRule {
 #>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
-		[parameter(Mandatory=$true)][ValidateSet("Allow","Deny")][string]$Action,
+		[parameter(Mandatory=$true)] [ValidateSet("Allow","Deny")][string]$Action,
 		[parameter(Mandatory=$true)] [string]$WebListener,
 		[ValidateSet("HTTP","HTTPS","HTTPandSSL","FTP")][string]$ServerType,
 		[ValidateSet("GeneralWebServer","ExchangeServer","SharePointServer")][string]$ServerApplication = "GeneralWebServer",
@@ -707,15 +723,12 @@ function Set-TMGWebPublishingRule {
 	return $modrule
 }
 
-function Remove-TMGWebPublishingRule ($Name) {
-	Write-Error "Remove-TMGWebPublishingRule is deprecated. Use Remove-TMGRule instead."
-	Remove-TMGRule $Name
-}
-
 function Remove-TMGRule {
 <#
 	.SYNOPSIS
 	Deletes the specified TMG firewall policy rules.
+	
+	Supports pipelining.
 	.EXAMPLE
 	Remove-TMGRule -Name "Test"
 #>
@@ -793,42 +806,6 @@ function Move-TMGRule {
 	if ($Down) {
 		$global:PolicyRules.MoveDown($Rule.order)
 	}
-}
-
-function Get-TMGAccessRules {
-<#
-	.SYNOPSIS
-	Gets the TMG Access Rules whose names match the specified Filter.
-	.DESCRIPTION
-	Uses COM to get the TMG Access Rules from the Array that this TMG server is a member of, which match the specified Filter.
-	.EXAMPLE
-	Get-TMGAccessRules -Filter "Test *"
-	.PARAMETER Filter
-	The string you want to filter on. Leave blank or don't specify for no filtering.
-#>
-[CmdletBinding()]
-param
-(
-    [Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
-)
-	$result = @()
-
-	$fpcroot = New-Object -ComObject fpc.root
-	$tmgarray = $fpcroot.GetContainingArray()
-	$rules = $tmgarray.ArrayPolicy.PolicyRules
-	
-	#Set $Filter to * if not set
-	if (-Not $Filter) {
-		$Filter = "*"
-	}
-	
-	ForEach ($rule in $rules) {
-		if ($rule.Name -Like $Filter -And $rule.Type -eq [PolicyRuleTypes]::Access) {
-			$result += $rule
-		}
-	}
-	
-	return $result
 }
 
 function New-TMGAccessRule {
@@ -1042,7 +1019,7 @@ function Remove-TMGServerFarm {
 	Firewall rules using the MySet server farm will be returned and piped into Remove-TMGRule. The ruleset will need to be manually saved.
 	.EXAMPLE
 	Remove-TMGServerFarm -Name MySet -Force
-	This command will delete the MySet server farm AND any firewall objects using it without confirmation.
+	Deletes the MySet server farm AND any firewall objects using it without confirmation.
 #>
 	Param( 
 		[parameter(Mandatory=$true)] [string]$Name,
@@ -1172,6 +1149,65 @@ function Remove-TMGServerFromFarm {
 	return $rmsvr
 }
 
+function Remove-TMGComputerSet {
+<#
+	.SYNOPSIS
+	Removes a TMG Computer Set with the specified name.
+	.DESCRIPTION
+	Uses COM to remove the specified TMG Computer Set on the array that this TMG server is a member of.
+
+	Remove-TMGComputerSet can be executed consecutively to create new sets. Save-TMGComputerSet must then be executed to save the changes.
+	.EXAMPLE
+	Remove-TMGComputerSet -Name MySet
+	.EXAMPLE
+	Remove-TMGComputerSet -Name MySet -EnumerateRules
+	Enumerates rules using the computer set.
+	.EXAMPLE
+	Remove-TMGComputerSet -Name MySet -Force
+	Deletes the MySet computer set AND any firewall objects using it without confirmation.
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Name,
+		[switch]$EnumerateRules,
+		[switch]$Force
+	)
+
+	if (-not($ComputerSet)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ComputerSet = $tmgarray.RuleElements.ComputerSets
+	}
+
+	$refrules = @()
+	$allrules = Get-TMGRules
+	
+	foreach ($rule in $allrules) {
+		if ($rule.Type -eq 0) {
+			$refrules += $rule | Where-Object { ($_.SourceSelectionIPs.ComputerSets.Exists($Name) -eq $true) -or ($_.AccessProperties.DestinationSelectionIPs.ComputerSets.Exists($Name) -eq $true) }
+		} else {
+			$refrules += $rule | Where-Object { ($_.SourceSelectionIPs.ComputerSets.Exists($Name) -eq $true) }
+		}
+	}
+
+	if ($EnumerateRules) { return $refrules }
+	
+	if (($refrules) -and (!$Force)) {
+		Write-Error "This computer set cannot be deleted while it is used in TMG firewall policy rules. This set is currently assigned to these rules:"
+		return $refrules
+	} elseif (($refrules) -and ($Force)) {
+		$refrules | Remove-TMGRule
+		Save-TMGRules
+	}
+	
+	try {
+		$ComputerSet.Remove($Name)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+		
+}		
+		
 function Add-TMGComputerToSet {
 <#
 	.SYNOPSIS
@@ -1187,7 +1223,7 @@ function Add-TMGComputerToSet {
 	.PARAMETER ComputerIP
 	Matches the IP Address field in the list of entries under a computer set.
 #>
-	Param( 
+	Param(
 		[parameter(Mandatory=$true)] [string]$SetName,
 		[parameter(Mandatory=$true)] [string]$ClientName,
 		[parameter(Mandatory=$true)] [string]$ComputerIP
@@ -1289,6 +1325,48 @@ function New-TMGStaticRoute {
 	$newstrt.Metric = $Metric
 
 	return $newstrt
+}
+
+function Get-TMGStaticRoute {
+<#
+	.SYNOPSIS
+	Retrieves entries from the TMG Network Topology Routes list.
+	.EXAMPLE
+	Get-TMGStaticRoute
+#>
+
+	if (-not($StRoute)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:StRoute = $tmgarray.StaticRoutes
+	}
+	
+	return $StRoute
+}
+
+function Remove-TMGStaticRoute {
+<#
+	.SYNOPSIS
+	Removes an entry in the TMG Network Topology Routes list.
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Destination,
+		[parameter(Mandatory=$true)] [string]$Mask
+	)
+
+	if (-not($StRoute)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:StRoute = $tmgarray.StaticRoutes
+	}
+	
+	$exstroute = $StRoute | where { ($_.Destination -eq $Destination) -and ($_.Subnet -eq $Mask) }
+	
+	if ($exstroute) {
+		$exstroute.remove()
+	} else {
+		Write-error "The specified route could not be bound."
+	}
 }
 
 function Get-TMGProtocolDefinitions {
