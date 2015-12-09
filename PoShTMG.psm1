@@ -372,7 +372,7 @@ function New-TMGWebPublishingRule {
 	)
 	
 	#### INPUT VALIDATION
-	if (($Enabled) -and (-not($ServerHostName))) { throw "An enabled rule must contain a ServerHostName" }
+	if (($Enabled) -and (!$ServerHostName -and !$LoadBalancingEnabled)) { throw "An enabled rule must contain a ServerHostName or have LoadBalancingEnabled" }
 	if (($LoadBalancingEnabled) -and (-not($LoadBalancingFarm))) {throw "A load balancing server farm must be specified with -LoadBalancingFarm if -LoadBalancingEnabled is set."}
 	
 	if (-not($PolicyRules)) {
