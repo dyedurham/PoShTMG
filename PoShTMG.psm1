@@ -1286,6 +1286,308 @@ function Remove-TMGComputerFromSet {
 	return $rmcmp
 }
 
+function Enable-TMGCompressibleContentType {
+<#
+	.SYNOPSIS
+	Enables HTTP compression on a TMG Content Type set with the specified name.
+	
+	A content type set must be specified, not a content type. Content type sets can be viewed with Get-TMGContentTypeSet.
+	.EXAMPLE
+	Enable-TMGCompressibleContentType -Name TestType
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Name
+	)
+
+	if (-not($HTTPCCT)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:HTTPCCT = $tmgarray.ArrayPolicy.WebProxy.HTTPCompressionConfiguration
+	}
+	
+	try {
+		$ncts = $HTTPCCT.CompressibleContentTypeSets.Add($Name,0)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+
+	return $ncts
+}
+
+function Disable-TMGCompressibleContentType {
+<#
+	.SYNOPSIS
+	Disables HTTP compression on a TMG Content Type set with the specified name.
+	
+	A content type set must be specified, not a content type. Content type sets can be viewed with Get-TMGContentTypeSet.
+	.EXAMPLE
+	Disable-TMGCompressibleContentType -Name TestType
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Name
+	)
+
+	if (-not($HTTPCCT)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:HTTPCCT = $tmgarray.ArrayPolicy.WebProxy.HTTPCompressionConfiguration
+	}
+	
+	try {
+		$tsa = [array]($HTTPCCT.CompressibleContentTypeSets | foreach { echo $_.Name.ToLower() } )
+		$cctind = [array]::IndexOf($tsa,$Name.ToLower()) + 1
+		$HTTPCCT.CompressibleContentTypeSets.Remove($cctind)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+}
+
+function Add-TMGCompressibleSource {
+<#
+	.SYNOPSIS
+	Enables HTTP compression on a TMG network object with the specified name.
+	
+	A predefined network object must be specified as the Source, and it's type as the SourceType.
+	.EXAMPLE
+	Add-TMGCompressibleSource -SourceType ComputerSet -Source 'Management PCs'
+	.EXAMPLE
+	Add-TMGCompressibleSource -SourceType ComputerSet -Source 'Management PCs' -Exception
+	This command adds the source object as an exception. HTTP compression will not be applied to it.
+#>
+	Param(
+		[parameter(Mandatory=$true)][ValidateSet('Network','NetworkSet','Computer','AddressRange','Subnet','ComputerSet','EnterpriseNetwork','WebListener')] [string]$SourceType,
+		[parameter(Mandatory=$true)] [string]$Source,
+		[switch]$Exception
+	)
+
+	if (-not($HTTPCCT)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:HTTPCCT = $tmgarray.ArrayPolicy.WebProxy.HTTPCompressionConfiguration
+	}
+	
+	if ($Exception) {
+		$excst = 1
+	} else {
+		$excst = 0
+	}
+	
+	switch ($SourceType) {
+		Network				{ $path = "RequestSource.Networks" }
+		NetworkSet			{ $path = "RequestSource.NetworkSets" }
+		Computer			{ $path = "RequestSource.Computers" }
+		AddressRange		{ $path = "RequestSource.AddressRanges" }
+		Subnet				{ $path = "RequestSource.Subnets" }
+		ComputerSet			{ $path = "RequestSource.ComputerSets" }
+		EnterpriseNetwork	{ $path = "RequestSource.EnterpriseNetworks" }
+		WebListener			{ $path = "WebListeners" }
+	}
+	
+	try {
+		$ncts = Invoke-Expression "`$HTTPCCT.$path.Add('$Source',$excst)"
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+
+	return $ncts
+}
+
+function Remove-TMGCompressibleSource {
+<#
+	.SYNOPSIS
+	Disables HTTP compression on a TMG network object with the specified name.
+	
+	A predefined network object must be specified as the Source, and it's type as the SourceType.
+	.EXAMPLE
+	Remove-TMGCompressibleSource -SourceType ComputerSet -Source 'Management PCs'
+#>
+	Param( 
+		[parameter(Mandatory=$true)][ValidateSet('Network','NetworkSet','Computer','AddressRange','Subnet','ComputerSet','EnterpriseNetwork','WebListener')] [string]$SourceType,
+		[parameter(Mandatory=$true)] [string]$Source
+	)
+
+	if (-not($HTTPCCT)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:HTTPCCT = $tmgarray.ArrayPolicy.WebProxy.HTTPCompressionConfiguration
+	}
+	
+	switch ($SourceType) {
+		Network				{ $path = "RequestSource.Networks" }
+		NetworkSet			{ $path = "RequestSource.NetworkSets" }
+		Computer			{ $path = "RequestSource.Computers" }
+		AddressRange		{ $path = "RequestSource.AddressRanges" }
+		Subnet				{ $path = "RequestSource.Subnets" }
+		ComputerSet			{ $path = "RequestSource.ComputerSets" }
+		EnterpriseNetwork	{ $path = "RequestSource.EnterpriseNetworks" }
+		WebListener			{ $path = "WebListeners" }
+	}
+		
+	try {
+		[array]$tsa = Invoke-Expression "`$HTTPCCT.$path" | foreach { echo $_.Name.ToLower() }
+		$cctind = [array]::IndexOf($tsa,$Source.ToLower()) + 1
+		Invoke-Expression "`$HTTPCCT.$path.Remove($cctind)"
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+}
+
+function New-TMGContentTypeSet {
+<#
+	.SYNOPSIS
+	Adds a TMG Content Type set with the specified name.
+	.EXAMPLE
+	New-TMGContentTypeSet -Name TestType
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Name
+	)
+
+	if (-not($ContentTypes)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ContentTypes = $tmgarray.RuleElements.ContentTypeSets
+	}
+	
+	try {
+		$ncts = $ContentTypes.Add($Name)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+
+	return $ncts
+}
+
+function Get-TMGContentTypeSet {
+	[CmdletBinding()]
+	param(
+		[Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$Filter
+	)
+	
+	if (-not($ContentTypes)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ContentTypes = $tmgarray.RuleElements.ContentTypeSets
+	}
+	
+	if (-Not $Filter) { $Filter = "*" }
+	
+	$result = @()
+	
+	ForEach ($stn in ([array]$Filter -split ",")) {
+		$result += $ContentTypes | Where { $_.Name -like $stn } | select-object *
+	}
+
+	return $result | Sort-Object -Unique -Property PersistentName
+}
+
+function Remove-TMGContentTypeSet {
+<#
+	.SYNOPSIS
+	Removes a TMG Content Type set with the specified name.
+	.EXAMPLE
+	Remove-TMGContentTypeSet -Name TestType
+#>
+	Param( 
+		[parameter(Mandatory=$true)] [string]$Name
+	)
+
+	if (-not($ContentTypes)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ContentTypes = $tmgarray.RuleElements.ContentTypeSets
+	}
+	
+	try {
+		$ContentTypes.Remove($Name)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+}
+
+function Add-TMGContentTypeToSet {
+<#
+	.SYNOPSIS
+	Adds an entry to the TMG Content Type Set with the specified name.
+	.DESCRIPTION
+	Uses COM to add a type to the specified TMG Content Type Set on the array that this TMG server is a member of.
+	
+	Add-TMGContentTypeToSet can be executed consecutively add new entries. Save-TMGContentTypeSet must then be executed to save the changes.
+	.EXAMPLE
+	Add-TMGContentTypeToSet -SetName TestType -ContentType 'text/plain'
+#>
+	Param(
+		[parameter(Mandatory=$true)] [string]$SetName,
+		[parameter(Mandatory=$true)] [string]$ContentType
+	)
+
+	if (-not($ContentTypes)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ContentTypes = $tmgarray.RuleElements.ContentTypeSets
+	}
+	
+	try {
+		$ncts = $ContentTypes.Item($SetName).Add($ContentType)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+}
+
+function Get-TMGContentTypeFromSet {
+	Param(
+		[parameter(Mandatory=$true)] [string]$SetName
+	)
+
+	if (-not($ContentTypes)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ContentTypes = $tmgarray.RuleElements.ContentTypeSets
+	}
+	
+	try {
+		$ncts = $ContentTypes.Item($SetName)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+	
+	return $ncts
+}
+
+function Remove-TMGContentTypeFromSet {
+<#
+	.SYNOPSIS
+	Removes an entry from the TMG Content Type Set with the specified name.
+	.EXAMPLE
+	Remove-TMGContentTypeFromSet -SetName TestType -ContentType 'text/plain'
+#>
+	Param(
+		[parameter(Mandatory=$true)] [string]$SetName,
+		[parameter(Mandatory=$true)] [string]$ContentType
+	)
+
+	if (-not($ContentTypes)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:ContentTypes = $tmgarray.RuleElements.ContentTypeSets
+	}
+	
+	try {
+		$ncts = $ContentTypes.Item($SetName).Remove($ContentType)
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+}
+
 function New-TMGStaticRoute {
 <#
 	.SYNOPSIS
@@ -2060,6 +2362,22 @@ function Save-TMGNetworkConfiguration {
 function Save-TMGServerFarm {
 	if (-not($ServerFarm)) {throw "Nothing to save"}
 	try { $ServerFarm.Save() }
+	catch { throw $_.Exception.Message }
+	write-host "Saving..."
+	WaitForSync
+}
+
+function Save-TMGContentTypeSet {
+	if (-not($ContentTypes)) {throw "Nothing to save"}
+	try { $ContentTypes.Save() }
+	catch { throw $_.Exception.Message }
+	write-host "Saving..."
+	WaitForSync
+}
+
+function Save-TMGCompressibleContent {
+	if (-not($HTTPCCT)) {throw "Nothing to save"}
+	try { $HTTPCCT.Save() }
 	catch { throw $_.Exception.Message }
 	write-host "Saving..."
 	WaitForSync
