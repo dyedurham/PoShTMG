@@ -1368,10 +1368,40 @@ function Add-TMGCompressibleSource {
 		$global:HTTPCCT = $tmgarray.ArrayPolicy.WebProxy.HTTPCompressionConfiguration
 	}
 	
-	if ($Exception) {
-		$excst = 1
-	} else {
-		$excst = 0
+	switch ($SourceType) {
+		Network				{ $path = "RequestSource.Networks" }
+		NetworkSet			{ $path = "RequestSource.NetworkSets" }
+		Computer			{ $path = "RequestSource.Computers" }
+		AddressRange		{ $path = "RequestSource.AddressRanges" }
+		Subnet				{ $path = "RequestSource.Subnets" }
+		ComputerSet			{ $path = "RequestSource.ComputerSets" }
+		EnterpriseNetwork	{ $path = "RequestSource.EnterpriseNetworks" }
+		WebListener			{ $path = "WebListeners" }
+	}
+	
+	try {
+		$ncts = Invoke-Expression "`$HTTPCCT.$path.Add('$Source',$([int][bool]$Exception))"
+	} catch {
+		Write-error $_.Exception.Message
+		break
+	}
+
+	return $ncts
+}
+
+function Get-TMGCompressibleSource {
+<#
+	.EXAMPLE
+	Get-TMGCompressibleSource -SourceType Computer
+#>
+	Param(
+		[parameter(Mandatory=$true)][ValidateSet('Network','NetworkSet','Computer','AddressRange','Subnet','ComputerSet','EnterpriseNetwork','WebListener')] [string]$SourceType
+	)
+
+	if (-not($HTTPCCT)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:HTTPCCT = $tmgarray.ArrayPolicy.WebProxy.HTTPCompressionConfiguration
 	}
 	
 	switch ($SourceType) {
@@ -1386,7 +1416,7 @@ function Add-TMGCompressibleSource {
 	}
 	
 	try {
-		$ncts = Invoke-Expression "`$HTTPCCT.$path.Add('$Source',$excst)"
+		$ncts = Invoke-Expression "`$HTTPCCT.$path"
 	} catch {
 		Write-error $_.Exception.Message
 		break
