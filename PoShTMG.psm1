@@ -184,18 +184,28 @@ Set-Variable SharePointXML -option Constant -value '<Configuration BlockExecutab
 ####		(DON'T CHANGE THIS STUFF)
 
 function Get-TMGWebPublishingRules ($Name) {
-	Write-Error "Get-TMGWebPublishingRules is deprecated. Use Get-TMGRules with -Type WebPublishing instead."
+	Write-Error "Get-TMGWebPublishingRules is deprecated. Your command will be converted now, but next time use Get-TMGRules with -Type WebPublishing instead."
 	Get-TMGRules $Name -Type WebPublishing
 }
 
 function Get-TMGAccessRules ($Name) {
-	Write-Error "Get-TMGAccessRules is deprecated. Use Get-TMGRules with -Type Access instead."
+	Write-Error "Get-TMGAccessRules is deprecated. Your command will be converted now, but next time use Get-TMGRules with -Type Access instead."
 	Get-TMGRules $Name -Type Access
 }
 
 function Remove-TMGWebPublishingRule ($Name) {
-	Write-Error "Remove-TMGWebPublishingRule is deprecated. Use Remove-TMGRule instead."
+	Write-Error "Remove-TMGWebPublishingRule is deprecated. Your command will be converted now, but next time use Remove-TMGRule instead."
 	Remove-TMGRule $Name
+}
+
+function Add-TMGComputerToSet {
+	Param(
+		[parameter(Mandatory=$true)] [string]$SetName,
+		[parameter(Mandatory=$true)] [string]$ClientName,
+		[parameter(Mandatory=$true)] [string]$ComputerIP
+	)
+	Write-Error "Add-TMGComputerToSet is deprecated. Your command will be converted now, but next time use Add-TMGEntryToComputerSet instead."
+	Add-TMGEntryToComputerSet -SetName $SetName -ClientName $Name -ComputerIP $HostAddress
 }
 
 function Get-TMGRules {
@@ -603,6 +613,9 @@ function Set-TMGWebPublishingRule {
 		[string]$ExcludeComputerSets,
 		[string]$SourceComputers,
 		[string]$ExcludeComputers,
+		[string]$RemoveSourceNetworks,
+		[string]$RemoveSourceComputerSets,
+		[string]$RemoveSourceComputers,
 		[string]$LogoffURL,
 		[string]$InternalPathMapping,
 		[string]$ExternalPathMapping,
@@ -629,7 +642,7 @@ function Set-TMGWebPublishingRule {
 	try {
 	  $modrule = $PolicyRules.Item($Name)
 	} catch {
-		Write-Verbose "Rule $Name could not be bound. Does the rule exist?"
+		Write-Error "Rule $Name could not be bound. Does the rule exist?"
 		return
 	}
 	
@@ -687,6 +700,21 @@ function Set-TMGWebPublishingRule {
 	if ($ExcludeComputers) {
 		foreach ($exc in ([array]$ExcludeComputers -split ",")) {
 				$modrule.SourceSelectionIPs.Computers.Add("$exc",1)}
+	}
+	
+	if ($RemoveSourceNetworks) {
+		foreach ($src in ([array]$RemoveSourceNetworks -split ",")) {
+				$modrule.SourceSelectionIPs.Networks.RemoveSpecified("$src")}
+	}
+		
+	if ($RemoveSourceComputerSets) {
+		foreach ($src in ([array]$RemoveSourceComputerSets -split ",")) {
+				$modrule.SourceSelectionIPs.ComputerSets.RemoveSpecified("$src")}
+	}
+	
+	if ($RemoveSourceComputers) {
+		foreach ($src in ([array]$RemoveSourceComputers -split ",")) {
+				$modrule.SourceSelectionIPs.Computers.RemoveSpecified("$src")}
 	}
 	
 	if ($PublicNames) {
@@ -1208,25 +1236,31 @@ function Remove-TMGComputerSet {
 		
 }		
 		
-function Add-TMGComputerToSet {
+function Add-TMGEntryToComputerSet {
 <#
 	.SYNOPSIS
 	Adds an entry to the TMG Computer Set with the specified name.
 	.DESCRIPTION
-	Uses COM to add a name/address pair to the specified TMG Computer Set on the array that this TMG server is a member of.
+	Uses COM to add a name/[address|network|range] pair to the specified TMG Computer Set on the array that this TMG server is a member of.
 	
-	Add-TMGComputerToSet can be executed consecutively add new entries. Save-TMGComputerSet must then be executed to save the changes.
+	Add-TMGEntryToComputerSet can be executed consecutively add new entries. Only one entry should be specified per command.
+	
+	Save-TMGComputerSet must then be executed to save the changes.
 	.EXAMPLE
-	Add-TMGComputerToSet -SetName MySet -ClientName MYSERVER -ComputerIP 192.168.1.1
-	.PARAMETER ClientName
-	Matches the Name field in the list of entries under a computer set.
-	.PARAMETER ComputerIP
-	Matches the IP Address field in the list of entries under a computer set.
+	Add-TMGEntryToComputerSet -SetName MySet -Name MYSERVER -HostAddress 192.168.1.1
+	.EXAMPLE
+	Add-TMGEntryToComputerSet -SetName MySet -Name MYSERVERNETWORK -SubnetAddress 192.168.1.1 -SubnetMask 255.255.255.0
+	.EXAMPLE
+	Add-TMGEntryToComputerSet -SetName MySet -Name MYSERVERNETWORK -RangeStart 192.168.1.1 -RangeEnd 192.168.1.50
 #>
 	Param(
 		[parameter(Mandatory=$true)] [string]$SetName,
-		[parameter(Mandatory=$true)] [string]$ClientName,
-		[parameter(Mandatory=$true)] [string]$ComputerIP
+		[parameter(Mandatory=$true)] [string]$Name,
+		[string]$HostAddress,
+		[string]$SubnetAddress,
+		[string]$SubnetMask,
+		[string]$RangeStart,
+		[string]$RangeEnd
 	)
 
 	if (-not($ComputerSet)) {
@@ -1235,14 +1269,21 @@ function Add-TMGComputerToSet {
 		$global:ComputerSet = $tmgarray.RuleElements.ComputerSets
 	}
 	
-	if ( $ComputerSet.Item($SetName).Computers | where {$_.IPAddress -eq $ComputerIP } ) {
-		Write-Verbose "Element $ComputerIP exists."
-		break
-	}
-
 	try {
 		$newcmp = $ComputerSet.item($SetName)
-		$newcmp.Computers.Add($ClientName,$ComputerIP)
+		
+		if ($HostAddress) {
+			$newcmp.Computers.Add($Name,$HostAddress)
+		}
+		
+		if ($SubnetAddress) {
+			$newcmp.Subnets.Add($Name,$SubnetAddress,$SubnetMask)
+		}
+		
+		if ($RangeStart) {
+			$newcmp.AddressRanges.Add($Name,$RangeStart,$RangeEnd)
+		}
+		
 	} catch {
 		Write-error $_.Exception.Message
 		break
