@@ -2518,6 +2518,66 @@ function Clear-TMGServerFarm {
 	Remove-Variable -Name ServerFarm -Scope global
 }
 
+function Get-FirewallClientSessions {
+<#
+	.SYNOPSIS
+	Get List of Firwall sessions by session type or client name.
+	.DESCRIPTION
+	Get List of Firwall sessions by session type or client name.
+	
+	Get-FirewallClientSessions can be executed...
+	.EXAMPLE
+	Vpn Clients
+	Get-FirewallClientSessions -SessionType 4 -ClientName '*ivanov*'
+#>
+	[CmdletBinding()]
+	param(
+		[Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The SessionType to apply to the list of Sessions types.')] [int]$SessionType,
+		[Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The ClientUserName to apply to the list of Sessions ClientUserNames.')] [string]$ClientUserName
+	)
+	
+	if (-not($FirewallSessionMonitor)) {
+		$fpcroot = New-Object -ComObject fpc.root
+		$global:firewallFilter = New-Object -ComObject FPC.FPCFilterExpressions
+		$tmgarray = $fpcroot.GetContainingArray()
+		$global:FirewallSessionMonitor = $tmgarray.SessionsMonitors.SessionsMonitorFirewall
+	}
+	
+	if (-Not $ClientUserName) { $ClientUserName = "*" }
+	
+	$result = @()
+	
+	$FirewallSessionMonitor.ExecuteQuery($firewallFilter,10000)
+	
+	if(-Not $SessionType) {
+		ForEach ($client in ([array]$Filter -split ",")) {
+			$result += $FirewallSessionMonitor | Where { $_.ClientUserName -like $client } | select-object *
+		}
+	} Else {
+		ForEach ($client in ([array]$ClientUserName -split ",")) {
+			$result += $FirewallSessionMonitor | Where { $_.SessionType -eq $SessionType -and $_.ClientUserName -like $client } | select-object *
+		}
+	}
+
+	return $result | Sort-Object -Unique -Property SessionID
+}
+function Get-VpnClientSessions {
+	[CmdletBinding()]
+	param(
+		[Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='The Filter to apply to the list of Rule Names.')] [string]$ClientUserName
+	)
+<#
+	.SYNOPSIS
+	Get List of VPN sessions client name.
+	.DESCRIPTION
+	Get List of VPN sessions client name.
+	
+	.EXAMPLE
+	Get-FirewallClientSessions -ClientName '*ivanov*'
+#>
+	Get-FirewallClientSessions -SessionType 4 -ClientUserName $ClientUserName
+}
+
 #### PRIVATE FUNCTIONS ####
 
 function WaitForSync {
